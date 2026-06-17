@@ -20,7 +20,7 @@ jobs:
     - name: Setup pmbootstrap Tool
       run: |
         # Mengunduh langsung melalui repositori biner resmi GitLab PostmarketOS
-        git clone --depth=1 https://postmarketos.org
+        git clone --depth=1 https://postmarketos.git
         
         # Mendaftarkan path global agar perintah 'pmbootstrap' langsung aktif di step berikutnya
         echo "$GITHUB_WORKSPACE/pmbootstrap" >> $GITHUB_PATH
