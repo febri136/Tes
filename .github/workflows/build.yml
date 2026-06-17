@@ -32,11 +32,10 @@ jobs:
 
     - name: Generate pmbootstrap v3 Configuration File
       run: |
-        # REVISI: Menyertakan flag global '--as-root' setelah nama skrip agar lolos dari verifikasi root pmbootstrap (sudo -E dihapus)
+        # SELESAIKAN GERBANG INTERAKTIF: Menggunakan flag global '--as-root' agar lolos dari verifikasi root pmbootstrap
         yes "" | python3 pmbootstrap/pmbootstrap.py --as-root init || true
 
         # REVISI TOTAL (METODE INJEKSI TEKS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
-        # Pastikan bwrap tetap False untuk meringankan kerja kontainer
         cat <<EOF > ~/.config/pmbootstrap_v3.cfg
         [pmbootstrap]
         version = 3
@@ -59,26 +58,27 @@ jobs:
         mirrors.pmaports = http://postmarketos.org
         EOF
 
-        # Menyelaraskan konfigurasi sub-sistem internal ke unit Plasma Mobile menggunakan argumen global '--as-root' yang benar
+        # Menyelaraskan konfigurasi sub-sistem internal ke unit Plasma Mobile dengan flag global '--as-root'
         python3 pmbootstrap/pmbootstrap.py --as-root config device qcom-msm89x7
         python3 pmbootstrap/pmbootstrap.py --as-root config ui plasma-mobile
 
     - name: Zap and Pull Mainline Packages
       run: |
-        # Menjalankan sinkronisasi repositori pmaports dengan parameter global '--as-root'
+        # Menginisialisasi folder kerja secara otomatis dan sah dengan flag '--as-root'
         python3 pmbootstrap/pmbootstrap.py --as-root zap
+        
+        # Memperbarui pmaports menggunakan eksekusi langsung Python3
         python3 pmbootstrap/pmbootstrap.py --as-root pull
 
     - name: Build Rootfs Image
       run: |
-        # PERBAIKAN STRUKTUR: Meletakkan '--as-root' sebagai argumen global di depan, diikuti sub-perintah install
-        # Langkah ini sukses memotong pemanggilan 'busybox su pmos' yang diblokir kontainer virtual GitHub Actions
-        python3 pmbootstrap/pmbootstrap.py --as-root install --no-fde --password 000
+        # PERBAIKAN ABSOLUT: Menggabungkan '--as-root' (bypass chroot) dan '--details-to-stdout' (mencegah timeout kompilasi systemd/KDE)
+        python3 pmbootstrap/pmbootstrap.py --as-root --details-to-stdout install --no-fde --password 000
 
     - name: Export Deployment Images
       run: |
         mkdir -p ./output_artifacts
-        # Mengekspor hasil kompilasi citra (img) ke folder output dengan argumen global '--as-root'
+        # Mengekspor hasil kompilasi citra (img) ke folder output dengan flag '--as-root'
         python3 pmbootstrap/pmbootstrap.py --as-root export --output=./output_artifacts
 
     - name: Upload Build Artifacts
