@@ -36,16 +36,16 @@ jobs:
         # Memastikan pmbootstrap terpasang dengan benar dan menampilkan versi
         pmbootstrap --version
 
-    - name: Generate pmbootstrap Configuration File
+    - name: Generate pmbootstrap v3 Configuration File
       run: |
-        # Membuat direktori konfigurasi default global pmbootstrap
+        # Membuat direktori konfigurasi default global pmbootstrap jika belum ada
         mkdir -p ~/.config
         
-        # Menulis langsung file pmbootstrap.cfg untuk memotong jalur interaktif 'init'
-        cat <<EOF > ~/.config/pmbootstrap.cfg
+        # Menulis langsung file pmbootstrap_v3.cfg dengan format standar v3 yang valid
+        cat <<EOF > ~/.config/pmbootstrap_v3.cfg
         [pmbootstrap]
-        aports = $GITHUB_WORKSPACE/pmbootstrap_root/pmaports
         version = 3
+        aports = $GITHUB_WORKSPACE/pmbootstrap_root/pmaports
         work = $GITHUB_WORKSPACE/pmbootstrap_work
         jobs = 4
         ccache_size = 5G
@@ -64,7 +64,7 @@ jobs:
 
     - name: Zap and Pull Mainline Packages
       run: |
-        # Memperbarui pmaports ke kondisi paling segar sesuai konfigurasi file di atas
+        # Memperbarui pmaports ke kondisi paling segar sesuai konfigurasi file v3 di atas
         pmbootstrap pull
 
     - name: Build Rootfs Image
