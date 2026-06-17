@@ -32,12 +32,11 @@ jobs:
 
     - name: Generate pmbootstrap v3 Configuration File
       run: |
-        # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja dengan izin sudo
-        yes "" | sudo python3 pmbootstrap/pmbootstrap.py init || true
+        # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
+        yes "" | python3 pmbootstrap/pmbootstrap.py init || true
 
         # REVISI TOTAL (METODE INJEKSI TEKS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
         # PERBAIKAN: Menggunakan plasma-mobile dan mematikan bubblewrap sandbox (bwrap = False) untuk melewati pembatasan kontainer GitHub
-        mkdir -p ~/.config
         cat <<EOF > ~/.config/pmbootstrap_v3.cfg
         [pmbootstrap]
         version = 3
@@ -60,29 +59,28 @@ jobs:
         mirrors.pmaports = http://postmarketos.org
         EOF
 
-        # Menyelaraskan konfigurasi sub-sistem internal menggunakan sudo
-        sudo python3 pmbootstrap/pmbootstrap.py config device qcom-msm89x7
-        sudo python3 pmbootstrap/pmbootstrap.py config ui plasma-mobile
+        # Menyelaraskan konfigurasi sub-sistem internal ke unit Plasma Mobile
+        python3 pmbootstrap/pmbootstrap.py config device qcom-msm89x7
+        python3 pmbootstrap/pmbootstrap.py config ui plasma-mobile
 
     - name: Zap and Pull Mainline Packages
       run: |
-        # Menginisialisasi folder kerja secara otomatis menggunakan sudo
-        sudo python3 pmbootstrap/pmbootstrap.py zap
+        # Menginisialisasi folder kerja secara otomatis dan sah dengan struktur metadata bawaan sistem
+        python3 pmbootstrap/pmbootstrap.py zap
         
-        # Memperbarui pmaports menggunakan eksekusi langsung Python3 dengan sudo
-        sudo python3 pmbootstrap/pmbootstrap.py pull
+        # Memperbarui pmaports menggunakan eksekusi langsung Python3
+        python3 pmbootstrap/pmbootstrap.py pull
 
     - name: Build Rootfs Image
       run: |
-        # Memulai perakitan citra sistem operasi KDE Plasma Mobile dengan PIN/Password '000'
-        # Ditambahkan perintah 'sudo' dan '--as-root' untuk memotong hambatan busybox su sandbox di GitHub Actions
-        sudo python3 pmbootstrap/pmbootstrap.py --as-root install --no-fde --password 000
+        # REVISI UTAMA: Menyuntikkan flag '--no-extra-enforce' untuk mematikan paksa seluruh aturan isolasi 'busybox su' penampung yang memicu exit code 125
+        python3 pmbootstrap/pmbootstrap.py install --no-fde --password 000 --no-extra-enforce
 
     - name: Export Deployment Images
       run: |
         mkdir -p ./output_artifacts
-        # Mengekspor hasil kompilasi citra (img) ke folder output menggunakan sudo
-        sudo python3 pmbootstrap/pmbootstrap.py export --output=./output_artifacts
+        # Mengekspor hasil kompilasi citra (img) ke folder output
+        python3 pmbootstrap/pmbootstrap.py export --output=./output_artifacts
 
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
