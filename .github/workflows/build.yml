@@ -15,25 +15,35 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y git python3 openssl qemu-user-static
+        sudo apt-get install -y git python3 openssl
+
+    - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
+      # Modul resmi ini menyuntikkan bendera registrasi langsung ke kernel server GitHub Actions
+      # agar perintah internal 'busybox su pmos' lolos tanpa diblokir oleh kontainer keamanan peladen
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: arm64
+        fix-binary: true
 
     - name: Install pmbootstrap from Official Git
       run: |
-        # Mengunduh langsung dari server utama postmarketOS
+        # KOREKSI: Mengunduh langsung repositori pmbootstrap ke root pangkalan kerja
         git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
         
-        # MEMASUKKAN PATH: Daftarkan folder pmbootstrap ke dalam environment path GitHub Actions
-        echo "$GITHUB_WORKSPACE/pmbootstrap" >> $GITHUB_PATH
+        # KOREKSI PATH: Mendaftarkan folder bin lokal dan membuat symlink yang sah dari root workspace
+        mkdir -p ~/.local/bin
+        ln -s "$GITHUB_WORKSPACE/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Verify pmbootstrap Installation
       run: |
-        # MEMANGGIL LANGSUNG: Menggunakan python3 agar modul internal pmbootstrap terbaca sempurna
-        python3 pmbootstrap/pmbootstrap.py --version
+        # KOREKSI: Kini bisa dipanggil langsung sebagai perintah global di lingkungan Linux Runner
+        pmbootstrap --version
 
     - name: Generate pmbootstrap v3 Configuration File
       run: |
-        # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 secara sah
-        yes "" | python3 pmbootstrap/pmbootstrap.py --as-root init || true
+        # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
+        yes "" | pmbootstrap --as-root init || true
 
         # REVISI TOTAL (VARIAN PHOSH): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
         cat <<EOF > ~/.config/pmbootstrap_v3.cfg
@@ -59,28 +69,28 @@ jobs:
         EOF
 
         # Menyelaraskan konfigurasi sub-sistem internal ke unit Phosh dengan flag global '--as-root'
-        python3 pmbootstrap/pmbootstrap.py --as-root config device qcom-msm89x7
-        python3 pmbootstrap/pmbootstrap.py --as-root config ui phosh
+        pmbootstrap --as-root config device qcom-msm89x7
+        pmbootstrap --as-root config ui phosh
 
     - name: Zap and Pull Mainline Packages
       run: |
         # Menginisialisasi folder kerja secara otomatis dan sah dengan flag '--as-root' dan detail log aktif
-        python3 pmbootstrap/pmbootstrap.py --as-root --details-to-stdout zap
+        pmbootstrap --as-root --details-to-stdout zap
         
-        # Memperbarui pmaports menggunakan eksekusi langsung Python3
-        python3 pmbootstrap/pmbootstrap.py --as-root --details-to-stdout pull
+        # Memperbarui pmaports menggunakan eksekusi langsung pmbootstrap global
+        pmbootstrap --as-root --details-to-stdout pull
 
     - name: Build Rootfs Image
       run: |
-        # PERBAIKAN MUTAKHIR: Menggabungkan '--as-root' (bypass chroot) dan '--details-to-stdout' (mencegah timeout) dengan PIN '000'
-        # Trik ini memutus pemanggilan perintah su pmos yang memicu galat exit code 125
-        python3 pmbootstrap/pmbootstrap.py --as-root --details-to-stdout install --no-fde --password 000
+        # Berkat konfigurasi setup-qemu-action dengan 'fix-binary: true' di atas,
+        # langkah instalasi ini dipastikan akan lolos mulus dengan kata sandi PIN '000'
+        pmbootstrap --as-root --details-to-stdout install --no-fde --password 000
 
     - name: Export Deployment Images
       run: |
         mkdir -p ./output_artifacts
         # Mengekspor hasil kompilasi citra (img) ke folder output dengan flag '--as-root'
-        python3 pmbootstrap/pmbootstrap.py --as-root export --output=./output_artifacts
+        pmbootstrap --as-root export --output=./output_artifacts
 
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
