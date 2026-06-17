@@ -32,17 +32,15 @@ jobs:
 
     - name: Generate pmbootstrap v3 Configuration File
       run: |
-        # PEMBARUAN: Menggunakan trik sm7150 untuk melewati gerbang interaktif dengan menyuntikkan Enter kosong
-        # Ini akan membuat folder kerja asli yang sah dengan nomor versi paling mutakhir (version 8) secara otomatis
-        echo -e '\n\n\n\n\n\n\n\n\n\n' | python3 pmbootstrap/pmbootstrap.py init || true
+        # REVISI: Menggunakan 'yes' tanpa batas untuk mengisi semua opsi default secara otomatis tanpa galat EOF
+        yes "" | python3 pmbootstrap/pmbootstrap.py init || true
 
-        # PEMBARUAN: Menyuntikkan konfigurasi msm89x7 target secara sah melalui sub-perintah konfigurasi internal
+        # REVISI: Menyuntikkan konfigurasi msm89x7 target menggunakan struktur argumen v3 yang valid (Opsi 'vendor' dihapus)
         python3 pmbootstrap/pmbootstrap.py config device qcom-msm89x7
-        python3 pmbootstrap/pmbootstrap.py config vendor qualcomm
         python3 pmbootstrap/pmbootstrap.py config ui phosh
         python3 pmbootstrap/pmbootstrap.py config channel edge
-        python3 pmbootstrap/pmbootstrap.py config mirror_alpine http://alpinelinux.org
-        python3 pmbootstrap/pmbootstrap.py config mirror_pmos http://postmarketos.org
+        python3 pmbootstrap/pmbootstrap.py config mirrors.alpine http://alpinelinux.org
+        python3 pmbootstrap/pmbootstrap.py config mirrors.postmarketos http://postmarketos.org
 
     - name: Zap and Pull Mainline Packages
       run: |
