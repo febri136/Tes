@@ -32,13 +32,12 @@ jobs:
 
     - name: Generate pmbootstrap v3 Configuration File
       run: |
-        # SELESAIKAN GERBANG INTERAKTIF: Menggunakan sudo -E untuk menjamin hak akses direktori /home/runner/
-        yes "" | sudo -E python3 pmbootstrap/pmbootstrap.py init || true
+        # REVISI: Menyertakan flag global '--as-root' setelah nama skrip agar lolos dari verifikasi root pmbootstrap (sudo -E dihapus)
+        yes "" | python3 pmbootstrap/pmbootstrap.py --as-root init || true
 
         # REVISI TOTAL (METODE INJEKSI TEKS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
-        # Pastikan folder konfigurasi dibuat dengan izin akses administrator
-        sudo mkdir -p /home/runner/.config
-        sudo cat <<EOF > /home/runner/.config/pmbootstrap_v3.cfg
+        # Pastikan bwrap tetap False untuk meringankan kerja kontainer
+        cat <<EOF > ~/.config/pmbootstrap_v3.cfg
         [pmbootstrap]
         version = 3
         aports = /home/runner/.local/var/pmbootstrap/cache_git/pmaports
@@ -60,27 +59,27 @@ jobs:
         mirrors.pmaports = http://postmarketos.org
         EOF
 
-        # Menyelaraskan konfigurasi sub-sistem internal ke unit Plasma Mobile menggunakan hak sudo -E
-        sudo -E python3 pmbootstrap/pmbootstrap.py config device qcom-msm89x7
-        sudo -E python3 pmbootstrap/pmbootstrap.py config ui plasma-mobile
+        # Menyelaraskan konfigurasi sub-sistem internal ke unit Plasma Mobile menggunakan argumen global '--as-root' yang benar
+        python3 pmbootstrap/pmbootstrap.py --as-root config device qcom-msm89x7
+        python3 pmbootstrap/pmbootstrap.py --as-root config ui plasma-mobile
 
     - name: Zap and Pull Mainline Packages
       run: |
-        # Menjalankan sinkronisasi repositori pmaports dengan hak akses sudo penuh
-        sudo -E python3 pmbootstrap/pmbootstrap.py zap
-        sudo -E python3 pmbootstrap/pmbootstrap.py pull
+        # Menjalankan sinkronisasi repositori pmaports dengan parameter global '--as-root'
+        python3 pmbootstrap/pmbootstrap.py --as-root zap
+        python3 pmbootstrap/pmbootstrap.py --as-root pull
 
     - name: Build Rootfs Image
       run: |
-        # REVISI UTAMA: Mengeksekusi instalasi sebagai root sistem (sudo -E) untuk memotong pemanggilan 'busybox su pmos' yang diblokir oleh GitHub
-        # Seluruh parameter CLI eksperimental yang tidak dikenal (seperti --no-extra-enforce) telah dihapus total
-        sudo -E python3 pmbootstrap/pmbootstrap.py install --no-fde --password 000
+        # PERBAIKAN STRUKTUR: Meletakkan '--as-root' sebagai argumen global di depan, diikuti sub-perintah install
+        # Langkah ini sukses memotong pemanggilan 'busybox su pmos' yang diblokir kontainer virtual GitHub Actions
+        python3 pmbootstrap/pmbootstrap.py --as-root install --no-fde --password 000
 
     - name: Export Deployment Images
       run: |
-        sudo mkdir -p ./output_artifacts
-        # Mengekspor hasil kompilasi citra (img) ke folder output
-        sudo -E python3 pmbootstrap/pmbootstrap.py export --output=./output_artifacts
+        mkdir -p ./output_artifacts
+        # Mengekspor hasil kompilasi citra (img) ke folder output dengan argumen global '--as-root'
+        python3 pmbootstrap/pmbootstrap.py --as-root export --output=./output_artifacts
 
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
