@@ -1,0 +1,59 @@
+name: Build postmarketOS msm89x7 Nightly
+
+on:
+  workflow_dispatch: # Memicu build secara manual lewat tab Actions
+  schedule:
+    - cron: '0 2 * * 5' # Otomatis build setiap hari Jumat jam 02:00 UTC (mengikuti konsep nightly)
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git python3 openssl qemu-user-static
+
+    - name: Setup pmbootstrap
+      run: |
+        git clone https://github.com
+        echo "$GITHUB_WORKSPACE/pmbootstrap" >> $GITHUB_PATH
+
+    - name: Initialize pmbootstrap Configuration
+      run: |
+        # Mengonfigurasi lingkungan qcom-msm89x7 secara non-interaktif di channel edge
+        pmbootstrap init \
+          --path=./pmbootstrap_root \
+          --work=./pmbootstrap_work \
+          --arch=aarch64 \
+          --vendor=qualcomm \
+          --device=qcom-msm89x7 \
+          --ui=phosh \
+          --channel=edge \
+          --mirror=http://alpinelinux.org
+
+    - name: Zap and Pull Mainline Packages
+      run: |
+        # Memastikan seluruh pmaports diperbarui ke versi edge paling segar
+        pmbootstrap pull
+
+    - name: Build Rootfs Image
+      run: |
+        # Mengompilasi seluruh sistem tanpa enkripsi (untuk mempermudah pengujian awal)
+        pmbootstrap install --no-fde
+
+    - name: Export Deployment Images
+      run: |
+        mkdir -p ./output_artifacts
+        # Mengekspor berkas kernel tunggal dan rootfs ke folder output
+        pmbootstrap export --output=./output_artifacts
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: postmarketOS-qcom-msm89x7-edge
+        path: ./output_artifacts/*
+        
