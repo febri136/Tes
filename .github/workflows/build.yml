@@ -82,19 +82,18 @@ jobs:
 
     - name: Build Rootfs Image
       run: |
-        # PERBAIKAN: Menghapus argumen '--user=root' yang memicu galat unrecognized arguments di pmbootstrap v3
         # Konfigurasi 'user = root' di dalam file cfg sudah otomatis mengabaikan perintah busybox su pmos
         pmbootstrap --as-root --details-to-stdout install --no-fde --password 000
 
     - name: Export Deployment Images
       run: |
-        mkdir -p ./output_artifacts
-        # Mengekspor hasil kompilasi citra (img) ke folder output dengan flag '--as-root'
-        pmbootstrap --as-root export --output=./output_artifacts
+        # PERBAIKAN: Menggunakan jalur folder absolut workspace dan mengubah format argumen '--output' menjadi spasi biasa sesuai standar v3
+        mkdir -p $GITHUB_WORKSPACE/output_artifacts
+        pmbootstrap --as-root export --output $GITHUB_WORKSPACE/output_artifacts
 
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: postmarketOS-qcom-msm89x7-edge-phosh
-        path: ./output_artifacts/*
+        path: ${{ github.workspace }}/output_artifacts/*
         
