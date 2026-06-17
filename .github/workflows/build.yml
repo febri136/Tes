@@ -35,8 +35,7 @@ jobs:
         # Membuat direktori konfigurasi default global pmbootstrap jika belum ada
         mkdir -p ~/.config
         
-        # PERBAIKAN: Membuat folder kerja dan root pmaports secara fisik agar lolos validasi awal v3
-        mkdir -p $GITHUB_WORKSPACE/pmbootstrap_work
+        # DISKUSI: Kita HANYA membuat folder root pmaports. Folder work diserahkan ke pmbootstrap zap.
         mkdir -p $GITHUB_WORKSPACE/pmbootstrap_root/pmaports
         
         # Menulis langsung file pmbootstrap_v3.cfg dengan format standar v3 yang valid
@@ -62,6 +61,9 @@ jobs:
 
     - name: Zap and Pull Mainline Packages
       run: |
+        # DISKUSI: Menginisialisasi folder kerja secara otomatis dan sah dengan struktur metadata v3
+        python3 pmbootstrap/pmbootstrap.py zap
+        
         # Memperbarui pmaports menggunakan eksekusi langsung Python3
         python3 pmbootstrap/pmbootstrap.py pull
 
