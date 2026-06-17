@@ -87,13 +87,14 @@ jobs:
 
     - name: Export Deployment Images
       run: |
-        # PERBAIKAN: Menggunakan jalur folder absolut workspace dan mengubah format argumen '--output' menjadi spasi biasa sesuai standar v3
-        mkdir -p $GITHUB_WORKSPACE/output_artifacts
-        pmbootstrap --as-root export --output $GITHUB_WORKSPACE/output_artifacts
+        # PERBAIKAN: Mengeksekusi perintah murni v3 tanpa parameter flag --output yang dilarang hulu
+        pmbootstrap --as-root export
 
-    - name: Upload Build Artifacts
+    - name: Upload Artifacts (Logika Curtana)
+      # PERBAIKAN: Menyapu berkas hasil ekspor otomatis langsung dari jalur /tmp hulu menggunakan pencarian bintang (*.img)
       uses: actions/upload-artifact@v4
       with:
         name: postmarketOS-qcom-msm89x7-edge-phosh
-        path: ${{ github.workspace }}/output_artifacts/*
+        path: /tmp/postmarketOS-export/*.img
+        retention-days: 7
         
