@@ -19,16 +19,16 @@ jobs:
 
     - name: Install pmbootstrap from Official Git
       run: |
-        # Mengunduh dari server mandiri resmi postmarketOS
+        # Mengunduh langsung dari server utama postmarketOS
         git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
         
         # Membuat folder lokal bin di runner GitHub
         mkdir -p ~/.local/bin
         
-        # Membuat tautan simbolis (symlink) ke berkas eksekusi utama
+        # Membuat symlink yang mengarah tepat ke file eksekusi
         ln -s "$PWD/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
         
-        # Memasukkan path ke environment GitHub agar perintah 'pmbootstrap' bisa dipanggil global
+        # Memasukkan path lokal ke dalam sistem environment GitHub Actions
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Verify pmbootstrap Installation
@@ -36,23 +36,35 @@ jobs:
         # Memastikan pmbootstrap terpasang dengan benar dan menampilkan versi
         pmbootstrap --version
 
-    - name: Initialize pmbootstrap Configuration
+    - name: Generate pmbootstrap Configuration File
       run: |
-        # Konfigurasi otomatis non-interaktif untuk platform qcom-msm89x7 (Edge Channel)
-        # Parameter mirror dispesifikasikan langsung ke --mirror-alpine untuk mencegah ambiguitas
-        pmbootstrap init \
-          --path=./pmbootstrap_root \
-          --work=./pmbootstrap_work \
-          --arch=aarch64 \
-          --vendor=qualcomm \
-          --device=qcom-msm89x7 \
-          --ui=phosh \
-          --channel=edge \
-          --mirror-alpine=http://alpinelinux.org
+        # Membuat direktori konfigurasi default global pmbootstrap
+        mkdir -p ~/.config
+        
+        # Menulis langsung file pmbootstrap.cfg untuk memotong jalur interaktif 'init'
+        cat <<EOF > ~/.config/pmbootstrap.cfg
+        [pmbootstrap]
+        aports = $GITHUB_WORKSPACE/pmbootstrap_root/pmaports
+        version = 3
+        work = $GITHUB_WORKSPACE/pmbootstrap_work
+        jobs = 4
+        ccache_size = 5G
+        channel = edge
+        vendor = qualcomm
+        device = qcom-msm89x7
+        ui = phosh
+        user = pmos
+        lang = en_US.UTF-8
+        timezone = UTC
+        hostname = qcom-msm89x7
+        mirror_alpine = http://alpinelinux.org
+        mirror_pmos = http://postmarketos.org
+        is_default_channel = False
+        EOF
 
     - name: Zap and Pull Mainline Packages
       run: |
-        # Memperbarui indeks paket pmaports ke kondisi paling segar
+        # Memperbarui pmaports ke kondisi paling segar sesuai konfigurasi file di atas
         pmbootstrap pull
 
     - name: Build Rootfs Image
@@ -63,7 +75,7 @@ jobs:
     - name: Export Deployment Images
       run: |
         mkdir -p ./output_artifacts
-        # Pindahkan hasil kompilasi citra (img) ke folder output
+        # Mengekspor hasil kompilasi citra (img) ke folder output
         pmbootstrap export --output=./output_artifacts
 
     - name: Upload Build Artifacts
