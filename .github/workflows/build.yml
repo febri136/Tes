@@ -68,8 +68,8 @@ jobs:
 
     - name: Build Rootfs Image
       run: |
-        # Proses pembuatan citra sistem operasi tanpa enkripsi awal (FDE)
-        python3 pmbootstrap/pmbootstrap.py install --no-fde
+        # REVISI KATA SANDI: Menyuntikkan PIN/Password '000' agar lolos dari verifikasi interaktif terminal
+        python3 pmbootstrap/pmbootstrap.py install --no-fde --password 000
 
     - name: Export Deployment Images
       run: |
