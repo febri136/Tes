@@ -32,40 +32,21 @@ jobs:
 
     - name: Generate pmbootstrap v3 Configuration File
       run: |
-        # Membuat direktori konfigurasi default global pmbootstrap jika belum ada
-        mkdir -p ~/.config
-        
-        # Membuat folder root pmaports
-        mkdir -p $GITHUB_WORKSPACE/pmbootstrap_root/pmaports
-        
-        # PEMBARUAN: Membuat folder kerja dan langsung menyuntikkan file verifikasi internal versi 3 agar lolos dari gerbang pemblokiran v3
-        mkdir -p $GITHUB_WORKSPACE/pmbootstrap_work
-        echo "3" > $GITHUB_WORKSPACE/pmbootstrap_work/version
-        
-        # Menulis langsung file pmbootstrap_v3.cfg dengan format standar v3 yang valid
-        cat <<EOF > ~/.config/pmbootstrap_v3.cfg
-        [pmbootstrap]
-        version = 3
-        aports = $GITHUB_WORKSPACE/pmbootstrap_root/pmaports
-        work = $GITHUB_WORKSPACE/pmbootstrap_work
-        jobs = 4
-        ccache_size = 5G
-        channel = edge
-        vendor = qualcomm
-        device = qcom-msm89x7
-        ui = phosh
-        user = pmos
-        lang = en_US.UTF-8
-        timezone = UTC
-        hostname = qcom-msm89x7
-        mirror_alpine = http://alpinelinux.org
-        mirror_pmos = http://postmarketos.org
-        is_default_channel = False
-        EOF
+        # PEMBARUAN: Menggunakan trik sm7150 untuk melewati gerbang interaktif dengan menyuntikkan Enter kosong
+        # Ini akan membuat folder kerja asli yang sah dengan nomor versi paling mutakhir (version 8) secara otomatis
+        echo -e '\n\n\n\n\n\n\n\n\n\n' | python3 pmbootstrap/pmbootstrap.py init || true
+
+        # PEMBARUAN: Menyuntikkan konfigurasi msm89x7 target secara sah melalui sub-perintah konfigurasi internal
+        python3 pmbootstrap/pmbootstrap.py config device qcom-msm89x7
+        python3 pmbootstrap/pmbootstrap.py config vendor qualcomm
+        python3 pmbootstrap/pmbootstrap.py config ui phosh
+        python3 pmbootstrap/pmbootstrap.py config channel edge
+        python3 pmbootstrap/pmbootstrap.py config mirror_alpine http://alpinelinux.org
+        python3 pmbootstrap/pmbootstrap.py config mirror_pmos http://postmarketos.org
 
     - name: Zap and Pull Mainline Packages
       run: |
-        # Menginisialisasi folder kerja secara otomatis dan sah dengan struktur metadata v3 yang sudah kita suntikkan
+        # Menginisialisasi folder kerja secara otomatis dan sah dengan struktur metadata bawaan sistem
         python3 pmbootstrap/pmbootstrap.py zap
         
         # Memperbarui pmaports menggunakan eksekusi langsung Python3
