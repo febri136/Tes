@@ -19,7 +19,7 @@ jobs:
 
     - name: Install pmbootstrap from Official Git
       run: |
-        # Alamat repositori GitLab mandiri milik postmarketOS yang benar
+        # Mengunduh dari server mandiri resmi postmarketOS
         git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
         
         # Membuat folder lokal bin di runner GitHub
@@ -36,9 +36,10 @@ jobs:
         # Memastikan pmbootstrap terpasang dengan benar dan menampilkan versi
         pmbootstrap --version
 
-        - name: Initialize pmbootstrap Configuration
-        run: |
-        # Menggunakan parameter eksplisit --mirror-alpine untuk menghindari ambiguitas
+    - name: Initialize pmbootstrap Configuration
+      run: |
+        # Konfigurasi otomatis non-interaktif untuk platform qcom-msm89x7 (Edge Channel)
+        # Parameter mirror dispesifikasikan langsung ke --mirror-alpine untuk mencegah ambiguitas
         pmbootstrap init \
           --path=./pmbootstrap_root \
           --work=./pmbootstrap_work \
@@ -48,7 +49,6 @@ jobs:
           --ui=phosh \
           --channel=edge \
           --mirror-alpine=http://alpinelinux.org
-
 
     - name: Zap and Pull Mainline Packages
       run: |
