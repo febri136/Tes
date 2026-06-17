@@ -62,6 +62,9 @@ jobs:
         is_default_channel = False
         EOF
 
+        # REVISI KRUSIAL: Memaksa pmbootstrap mendaftarkan dan membuat folder kerjanya sendiri secara sah lewat subsistem konfigurasi internal
+        pmbootstrap config work $GITHUB_WORKSPACE/pmbootstrap_work
+
     - name: Zap and Pull Mainline Packages
       run: |
         # Memperbarui pmaports ke kondisi paling segar sesuai konfigurasi file v3 di atas
