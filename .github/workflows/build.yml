@@ -22,24 +22,22 @@ jobs:
         # Mengunduh langsung dari server utama postmarketOS
         git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
         
-        # Membuat folder lokal bin di runner GitHub
-        mkdir -p ~/.local/bin
-        
-        # Membuat symlink yang mengarah tepat ke file eksekusi
-        ln -s "$PWD/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
-        
-        # Memasukkan path lokal ke dalam sistem environment GitHub Actions
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        # MEMASUKKAN PATH: Daftarkan folder pmbootstrap ke dalam environment path GitHub Actions
+        echo "$GITHUB_WORKSPACE/pmbootstrap" >> $GITHUB_PATH
 
     - name: Verify pmbootstrap Installation
       run: |
-        # Memastikan pmbootstrap terpasang dengan benar dan menampilkan versi
-        pmbootstrap --version
+        # MEMANGGIL LANGSUNG: Menggunakan python3 agar modul internal pmbootstrap terbaca sempurna
+        python3 pmbootstrap/pmbootstrap.py --version
 
     - name: Generate pmbootstrap v3 Configuration File
       run: |
         # Membuat direktori konfigurasi default global pmbootstrap jika belum ada
         mkdir -p ~/.config
+        
+        # PERBAIKAN: Membuat folder kerja dan root pmaports secara fisik agar lolos validasi awal v3
+        mkdir -p $GITHUB_WORKSPACE/pmbootstrap_work
+        mkdir -p $GITHUB_WORKSPACE/pmbootstrap_root/pmaports
         
         # Menulis langsung file pmbootstrap_v3.cfg dengan format standar v3 yang valid
         cat <<EOF > ~/.config/pmbootstrap_v3.cfg
@@ -62,24 +60,21 @@ jobs:
         is_default_channel = False
         EOF
 
-        # REVISI KRUSIAL: Memaksa pmbootstrap mendaftarkan dan membuat folder kerjanya sendiri secara sah lewat subsistem konfigurasi internal
-        pmbootstrap config work $GITHUB_WORKSPACE/pmbootstrap_work
-
     - name: Zap and Pull Mainline Packages
       run: |
-        # Memperbarui pmaports ke kondisi paling segar sesuai konfigurasi file v3 di atas
-        pmbootstrap pull
+        # Memperbarui pmaports menggunakan eksekusi langsung Python3
+        python3 pmbootstrap/pmbootstrap.py pull
 
     - name: Build Rootfs Image
       run: |
         # Proses pembuatan citra sistem operasi tanpa enkripsi awal (FDE)
-        pmbootstrap install --no-fde
+        python3 pmbootstrap/pmbootstrap.py install --no-fde
 
     - name: Export Deployment Images
       run: |
         mkdir -p ./output_artifacts
         # Mengekspor hasil kompilasi citra (img) ke folder output
-        pmbootstrap export --output=./output_artifacts
+        python3 pmbootstrap/pmbootstrap.py export --output=./output_artifacts
 
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
