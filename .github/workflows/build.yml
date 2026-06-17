@@ -20,7 +20,7 @@ jobs:
     - name: Install pmbootstrap from Official Git
       run: |
         # Mengunduh langsung dari server utama postmarketOS
-        git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
+        git clone --depth=1 https://postmarketos.org
         
         # Membuat folder lokal bin di runner GitHub
         mkdir -p ~/.local/bin
@@ -36,13 +36,13 @@ jobs:
         # Memastikan pmbootstrap terpasang dengan benar dan menampilkan versi
         pmbootstrap --version
 
-    - name: Generate pmbootstrap Configuration File
+    - name: Generate and Initialize pmbootstrap v3 Config
       run: |
         # Membuat direktori konfigurasi default global pmbootstrap
         mkdir -p ~/.config
         
-        # Menulis langsung file pmbootstrap.cfg untuk memotong jalur interaktif 'init'
-        cat <<EOF > ~/.config/pmbootstrap.cfg
+        # Menulis template dasar pmbootstrap_v3.cfg yang kompatibel dengan versi terbaru
+        cat <<EOF > ~/.config/pmbootstrap_v3.cfg
         [pmbootstrap]
         aports = $GITHUB_WORKSPACE/pmbootstrap_root/pmaports
         version = 3
@@ -62,9 +62,12 @@ jobs:
         is_default_channel = False
         EOF
 
+        # Memaksa pmbootstrap memproses file tersebut menggunakan argumen init resmi agar tervalidasi penuh
+        pmbootstrap init --config=~/.config/pmbootstrap_v3.cfg --as-root
+
     - name: Zap and Pull Mainline Packages
       run: |
-        # Memperbarui pmaports ke kondisi paling segar sesuai konfigurasi file di atas
+        # Memperbarui pmaports ke kondisi paling segar sesuai konfigurasi file v3 di atas
         pmbootstrap pull
 
     - name: Build Rootfs Image
