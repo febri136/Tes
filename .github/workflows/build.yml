@@ -17,31 +17,36 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y git python3 openssl qemu-user-static
 
-    - name: Setup pmbootstrap Tool
+    - name: Install pmbootstrap from Official Git
       run: |
-        # Mengunduh langsung melalui repositori biner resmi GitLab PostmarketOS
-        git clone --depth=1 https://postmarketos.git
+        # Mengunduh langsung dari server utama postmarketOS
+        git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
         
-        # Mendaftarkan path global agar perintah 'pmbootstrap' langsung aktif di step berikutnya
-        echo "$GITHUB_WORKSPACE/pmbootstrap" >> $GITHUB_PATH
+        # Membuat folder lokal bin di runner GitHub
+        mkdir -p ~/.local/bin
+        
+        # Membuat symlink yang mengarah tepat ke file eksekusi
+        ln -s "$PWD/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
+        
+        # Memasukkan path lokal ke dalam sistem environment GitHub Actions
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Verify pmbootstrap Installation
       run: |
-        # Memastikan aplikasi merespon dengan benar
-        python3 pmbootstrap/pmbootstrap.py --version
+        # Memastikan pmbootstrap terpasang dengan benar dan menampilkan versi
+        pmbootstrap --version
 
-    - name: Generate pmbootstrap v3 Configuration
+    - name: Generate pmbootstrap Configuration File
       run: |
-        # Membuat folder konfigurasi rahasia global
+        # Membuat direktori konfigurasi default global pmbootstrap
         mkdir -p ~/.config
         
-        # Membuat file konfigurasi v3 yang mutlak presisi menggunakan skrip otomatis python
-        python3 -c "
-        import os
-        config_content = '''[pmbootstrap]
-        aports = {ws}/pmbootstrap_root/pmaports
+        # Menulis langsung file pmbootstrap.cfg untuk memotong jalur interaktif 'init'
+        cat <<EOF > ~/.config/pmbootstrap.cfg
+        [pmbootstrap]
+        aports = $GITHUB_WORKSPACE/pmbootstrap_root/pmaports
         version = 3
-        work = {ws}/pmbootstrap_work
+        work = $GITHUB_WORKSPACE/pmbootstrap_work
         jobs = 4
         ccache_size = 5G
         channel = edge
@@ -55,27 +60,23 @@ jobs:
         mirror_alpine = http://alpinelinux.org
         mirror_pmos = http://postmarketos.org
         is_default_channel = False
-        '''.format(ws=os.environ['GITHUB_WORKSPACE'])
-        
-        with open(os.path.expanduser('~/.config/pmbootstrap_v3.cfg'), 'w') as f:
-            f.write(config_content)
-        "
+        EOF
 
     - name: Zap and Pull Mainline Packages
       run: |
-        # Sinkronisasi repositori pmaports ke kondisi paling mutakhir
-        python3 pmbootstrap/pmbootstrap.py pull
+        # Memperbarui pmaports ke kondisi paling segar sesuai konfigurasi file di atas
+        pmbootstrap pull
 
     - name: Build Rootfs Image
       run: |
-        # Mulai proses perakitan citra sistem operasi msm89x7 secara penuh
-        python3 pmbootstrap/pmbootstrap.py install --no-fde
+        # Proses pembuatan citra sistem operasi tanpa enkripsi awal (FDE)
+        pmbootstrap install --no-fde
 
     - name: Export Deployment Images
       run: |
         mkdir -p ./output_artifacts
-        # Memindahkan file hasil biner bauran (.img) ke folder keluaran
-        python3 pmbootstrap/pmbootstrap.py export --output=./output_artifacts
+        # Mengekspor hasil kompilasi citra (img) ke folder output
+        pmbootstrap export --output=./output_artifacts
 
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
