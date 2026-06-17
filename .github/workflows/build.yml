@@ -45,7 +45,7 @@ jobs:
         yes "" | pmbootstrap --as-root init || true
 
         # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
-        # PERBAIKAN UTAMA: Mengubah 'user = pmos' menjadi 'user = root' agar sistem tidak memanggil busybox su pmos
+        # PERBAIKAN UTAMA: Menggunakan 'user = root' agar sistem tidak memanggil busybox su pmos
         cat <<EOF > ~/.config/pmbootstrap_v3.cfg
         [pmbootstrap]
         version = 3
@@ -82,9 +82,9 @@ jobs:
 
     - name: Build Rootfs Image
       run: |
-        # Berkat konfigurasi 'user = root' di atas, pmbootstrap v3 tidak akan memicu galat exit code 125
-        # Kita juga menambahkan parameter '--user=root' langsung pada instalasi sebagai perlindungan ganda
-        pmbootstrap --as-root --details-to-stdout install --no-fde --password 000 --user=root
+        # PERBAIKAN: Menghapus argumen '--user=root' yang memicu galat unrecognized arguments di pmbootstrap v3
+        # Konfigurasi 'user = root' di dalam file cfg sudah otomatis mengabaikan perintah busybox su pmos
+        pmbootstrap --as-root --details-to-stdout install --no-fde --password 000
 
     - name: Export Deployment Images
       run: |
