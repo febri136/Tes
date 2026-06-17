@@ -69,7 +69,7 @@ jobs:
     - name: Build Rootfs Image
       run: |
         # REVISI KATA SANDI: Menyuntikkan PIN/Password '000' agar lolos dari verifikasi interaktif terminal
-        python3 pmbootstrap/pmbootstrap.py install --no-fde --password 000 --user root
+        python3 pmbootstrap/pmbootstrap.py --as-root install --no-fde --password 000
 
     - name: Export Deployment Images
       run: |
