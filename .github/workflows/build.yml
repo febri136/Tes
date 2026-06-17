@@ -32,13 +32,12 @@ jobs:
 
     - name: Generate pmbootstrap v3 Configuration File
       run: |
-        # REVISI: Menggunakan 'yes' tanpa batas untuk mengisi semua opsi default secara otomatis tanpa galat EOF
+        # Menggunakan 'yes' tanpa batas untuk mengisi semua opsi default secara otomatis tanpa galat EOF
         yes "" | python3 pmbootstrap/pmbootstrap.py init || true
 
-        # REVISI: Menyuntikkan konfigurasi msm89x7 target menggunakan struktur argumen v3 yang valid (Opsi 'vendor' dihapus)
+        # REVISI: Menyuntikkan konfigurasi msm89x7 target (Opsi 'channel' dan 'vendor' yang usang telah dihapus)
         python3 pmbootstrap/pmbootstrap.py config device qcom-msm89x7
         python3 pmbootstrap/pmbootstrap.py config ui phosh
-        python3 pmbootstrap/pmbootstrap.py config channel edge
         python3 pmbootstrap/pmbootstrap.py config mirrors.alpine http://alpinelinux.org
         python3 pmbootstrap/pmbootstrap.py config mirrors.postmarketos http://postmarketos.org
 
