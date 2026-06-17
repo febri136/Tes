@@ -19,7 +19,6 @@ jobs:
 
     - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
       # Modul resmi ini menyuntikkan bendera registrasi langsung ke kernel server GitHub Actions
-      # agar perintah internal 'busybox su pmos' lolos tanpa diblokir oleh kontainer keamanan peladen
       uses: docker/setup-qemu-action@v3
       with:
         platforms: arm64
@@ -27,17 +26,17 @@ jobs:
 
     - name: Install pmbootstrap from Official Git
       run: |
-        # KOREKSI: Mengunduh langsung repositori pmbootstrap ke root pangkalan kerja
+        # Mengunduh langsung repositori pmbootstrap ke root pangkalan kerja
         git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
         
-        # KOREKSI PATH: Mendaftarkan folder bin lokal dan membuat symlink yang sah dari root workspace
+        # Mendaftarkan folder bin lokal dan membuat symlink yang sah dari root workspace
         mkdir -p ~/.local/bin
         ln -s "$GITHUB_WORKSPACE/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Verify pmbootstrap Installation
       run: |
-        # KOREKSI: Kini bisa dipanggil langsung sebagai perintah global di lingkungan Linux Runner
+        # Kini bisa dipanggil langsung sebagai perintah global di lingkungan Linux Runner
         pmbootstrap --version
 
     - name: Generate pmbootstrap v3 Configuration File
@@ -45,7 +44,8 @@ jobs:
         # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
         yes "" | pmbootstrap --as-root init || true
 
-        # REVISI TOTAL (VARIAN PHOSH): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
+        # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
+        # PERBAIKAN UTAMA: Mengubah 'user = pmos' menjadi 'user = root' agar sistem tidak memanggil busybox su pmos
         cat <<EOF > ~/.config/pmbootstrap_v3.cfg
         [pmbootstrap]
         version = 3
@@ -56,7 +56,7 @@ jobs:
         channel = edge
         device = qcom-msm89x7
         ui = phosh
-        user = pmos
+        user = root
         lang = en_US.UTF-8
         timezone = UTC
         hostname = qcom-msm89x7
@@ -82,9 +82,9 @@ jobs:
 
     - name: Build Rootfs Image
       run: |
-        # Berkat konfigurasi setup-qemu-action dengan 'fix-binary: true' di atas,
-        # langkah instalasi ini dipastikan akan lolos mulus dengan kata sandi PIN '000'
-        pmbootstrap --as-root --details-to-stdout install --no-fde --password 000
+        # Berkat konfigurasi 'user = root' di atas, pmbootstrap v3 tidak akan memicu galat exit code 125
+        # Kita juga menambahkan parameter '--user=root' langsung pada instalasi sebagai perlindungan ganda
+        pmbootstrap --as-root --details-to-stdout install --no-fde --password 000 --user=root
 
     - name: Export Deployment Images
       run: |
