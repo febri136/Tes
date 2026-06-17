@@ -47,7 +47,7 @@ jobs:
         channel = edge
         device = qcom-msm89x7
         ui = phosh
-        user = root
+        user = pmos
         lang = en_US.UTF-8
         timezone = UTC
         hostname = qcom-msm89x7
