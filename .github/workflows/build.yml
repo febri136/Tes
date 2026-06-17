@@ -3,7 +3,7 @@ name: Build postmarketOS msm89x7 Nightly
 on:
   workflow_dispatch: # Memicu build secara manual lewat tab Actions
   schedule:
-    - cron: '0 2 * * 5' # Otomatis build setiap hari Jumat jam 02:00 UTC (mengikuti konsep nightly)
+    - cron: '0 2 * * 5' # Otomatis build setiap hari Jumat jam 02:00 UTC
 
 jobs:
   build-image:
@@ -17,14 +17,28 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y git python3 openssl qemu-user-static
 
-    - name: Setup pmbootstrap
+    - name: Install pmbootstrap from Official Git
       run: |
-        git clone https://github.com
-        echo "$GITHUB_WORKSPACE/pmbootstrap" >> $GITHUB_PATH
+        # Mengunduh dari server mandiri resmi postmarketOS
+        git clone --depth=1 https://postmarketos.org
+        
+        # Membuat folder lokal bin di runner GitHub
+        mkdir -p ~/.local/bin
+        
+        # Membuat tautan simbolis (symlink) ke berkas eksekusi utama
+        ln -s "$PWD/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
+        
+        # Memasukkan path ke environment GitHub agar perintah 'pmbootstrap' bisa dipanggil global
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Verify pmbootstrap Installation
+      run: |
+        # Memastikan pmbootstrap terpasang dengan benar dan menampilkan versi
+        pmbootstrap --version
 
     - name: Initialize pmbootstrap Configuration
       run: |
-        # Mengonfigurasi lingkungan qcom-msm89x7 secara non-interaktif di channel edge
+        # Konfigurasi otomatis non-interaktif untuk platform qcom-msm89x7 (Edge Channel)
         pmbootstrap init \
           --path=./pmbootstrap_root \
           --work=./pmbootstrap_work \
@@ -37,18 +51,18 @@ jobs:
 
     - name: Zap and Pull Mainline Packages
       run: |
-        # Memastikan seluruh pmaports diperbarui ke versi edge paling segar
+        # Memperbarui indeks paket pmaports ke kondisi paling segar
         pmbootstrap pull
 
     - name: Build Rootfs Image
       run: |
-        # Mengompilasi seluruh sistem tanpa enkripsi (untuk mempermudah pengujian awal)
+        # Proses pembuatan citra sistem operasi tanpa enkripsi awal (FDE)
         pmbootstrap install --no-fde
 
     - name: Export Deployment Images
       run: |
         mkdir -p ./output_artifacts
-        # Mengekspor berkas kernel tunggal dan rootfs ke folder output
+        # Pindahkan hasil kompilasi citra (img) ke folder output
         pmbootstrap export --output=./output_artifacts
 
     - name: Upload Build Artifacts
