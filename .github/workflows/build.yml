@@ -19,8 +19,8 @@ jobs:
 
     - name: Install pmbootstrap from Official Git
       run: |
-        # Mengunduh dari server mandiri resmi postmarketOS
-        git clone --depth=1 https://postmarketos.org
+        # Alamat repositori GitLab mandiri milik postmarketOS yang benar
+        git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
         
         # Membuat folder lokal bin di runner GitHub
         mkdir -p ~/.local/bin
