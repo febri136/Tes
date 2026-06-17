@@ -32,10 +32,10 @@ jobs:
 
     - name: Generate pmbootstrap v3 Configuration File
       run: |
-        # SELESAIKAN GERBANG INTERAKTIF: Menggunakan flag global '--as-root' agar lolos dari verifikasi root pmbootstrap
+        # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 secara sah
         yes "" | python3 pmbootstrap/pmbootstrap.py --as-root init || true
 
-        # REVISI TOTAL (METODE INJEKSI TEKS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
+        # REVISI TOTAL (VARIAN PHOSH): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
         cat <<EOF > ~/.config/pmbootstrap_v3.cfg
         [pmbootstrap]
         version = 3
@@ -45,7 +45,7 @@ jobs:
         ccache_size = 5G
         channel = edge
         device = qcom-msm89x7
-        ui = plasma-mobile
+        ui = phosh
         user = pmos
         lang = en_US.UTF-8
         timezone = UTC
@@ -58,21 +58,22 @@ jobs:
         mirrors.pmaports = http://postmarketos.org
         EOF
 
-        # Menyelaraskan konfigurasi sub-sistem internal ke unit Plasma Mobile dengan flag global '--as-root'
+        # Menyelaraskan konfigurasi sub-sistem internal ke unit Phosh dengan flag global '--as-root'
         python3 pmbootstrap/pmbootstrap.py --as-root config device qcom-msm89x7
-        python3 pmbootstrap/pmbootstrap.py --as-root config ui plasma-mobile
+        python3 pmbootstrap/pmbootstrap.py --as-root config ui phosh
 
     - name: Zap and Pull Mainline Packages
       run: |
-        # Menginisialisasi folder kerja secara otomatis dan sah dengan flag '--as-root'
-        python3 pmbootstrap/pmbootstrap.py --as-root zap
+        # Menginisialisasi folder kerja secara otomatis dan sah dengan flag '--as-root' dan detail log aktif
+        python3 pmbootstrap/pmbootstrap.py --as-root --details-to-stdout zap
         
         # Memperbarui pmaports menggunakan eksekusi langsung Python3
-        python3 pmbootstrap/pmbootstrap.py --as-root pull
+        python3 pmbootstrap/pmbootstrap.py --as-root --details-to-stdout pull
 
     - name: Build Rootfs Image
       run: |
-        # PERBAIKAN ABSOLUT: Menggabungkan '--as-root' (bypass chroot) dan '--details-to-stdout' (mencegah timeout kompilasi systemd/KDE)
+        # PERBAIKAN MUTAKHIR: Menggabungkan '--as-root' (bypass chroot) dan '--details-to-stdout' (mencegah timeout) dengan PIN '000'
+        # Trik ini memutus pemanggilan perintah su pmos yang memicu galat exit code 125
         python3 pmbootstrap/pmbootstrap.py --as-root --details-to-stdout install --no-fde --password 000
 
     - name: Export Deployment Images
@@ -84,6 +85,6 @@ jobs:
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: postmarketOS-qcom-msm89x7-edge-plasma
+        name: postmarketOS-qcom-msm89x7-edge-phosh
         path: ./output_artifacts/*
         
