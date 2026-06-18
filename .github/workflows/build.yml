@@ -41,7 +41,7 @@ jobs:
         # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
         yes "" | pmbootstrap --as-root init || true
         # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
-        # PERBAIKAN UTAMA: Menggunakan 'user = root' agar sistem tidak memanggil busybox su pmos
+        # REVISI UI: Mengubah target antarmuka menjadi plasma-mobile
         cat <<EOF > ~/.config/pmbootstrap_v3.cfg
         [pmbootstrap]
         version = 3
@@ -51,20 +51,19 @@ jobs:
         ccache_size = 5G
         channel = edge
         device = qcom-msm89x7
-        ui = phosh
+        ui = plasma-mobile
         user = user
         lang = en_US.UTF-8
         timezone = UTC
         hostname = qcom-msm89x7
         is_default_channel = False
-        bwrap = False
         [mirrors]
         mirrors.alpine = http://alpinelinux.org
         mirrors.pmaports = http://postmarketos.org
         EOF
-        # Menyelaraskan konfigurasi sub-sistem internal ke unit Phosh dengan flag global '--as-root'
+        # REVISI UI: Menyelaraskan konfigurasi sub-sistem internal ke unit plasma-mobile dengan flag global '--as-root'
         pmbootstrap --as-root config device qcom-msm89x7
-        pmbootstrap --as-root config ui phosh
+        pmbootstrap --as-root config ui plasma-mobile
     - name: Zap and Pull Mainline Packages
       run: |
         # Menginisialisasi folder kerja secara otomatis dan sah dengan flag '--as-root' dan detail log aktif
@@ -74,16 +73,16 @@ jobs:
         pmbootstrap --as-root --details-to-stdout pull
     - name: Build Rootfs Image
       run: |
-        # REVISI UTAMA: Mengganti PIN/Password ke standar resmi postmarketOS yaitu '1234' agar bisa membuka UI Phosh
+        # Memulai perakitan citra sistem operasi KDE Plasma Mobile dengan PIN/Password komunitas '147147'
         pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
     - name: Export Deployment Images
       run: |
         # Mengeksekusi perintah murni v3 tanpa parameter flag --output yang dilarang hulu
         pmbootstrap --as-root export
     - name: Upload Artifacts (Logika Curtana)
-      # PERBAIKAN KERNEL: Mengubah ekon pencarian dari *.img menjadi *.img* agar berkas boot kernel ikut terbawa utuh
+      # Memastikan berkas kernel boot berekstensi panjang (*.img*) dan citra sistem tersapu bersih masuk ke dalam zip
       uses: actions/upload-artifact@v4
       with:
-        name: postmarketOS-qcom-msm89x7-edge-phosh
+        name: postmarketOS-qcom-msm89x7-edge-plasma
         path: /tmp/postmarketOS-export/*.img*
         retention-days: 7
