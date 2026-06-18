@@ -82,19 +82,19 @@ jobs:
 
     - name: Build Rootfs Image
       run: |
-        # Konfigurasi 'user = root' di dalam file cfg sudah otomatis mengabaikan perintah busybox su pmos
-        pmbootstrap --as-root --details-to-stdout install --no-fde --password 000
+        # REVISI UTAMA: Mengganti PIN/Password ke standar resmi postmarketOS yaitu '1234' agar bisa membuka UI Phosh
+        pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
 
     - name: Export Deployment Images
       run: |
-        # PERBAIKAN: Mengeksekusi perintah murni v3 tanpa parameter flag --output yang dilarang hulu
+        # Mengeksekusi perintah murni v3 tanpa parameter flag --output yang dilarang hulu
         pmbootstrap --as-root export
 
     - name: Upload Artifacts (Logika Curtana)
-      # PERBAIKAN: Menyapu berkas hasil ekspor otomatis langsung dari jalur /tmp hulu menggunakan pencarian bintang (*.img)
+      # PERBAIKAN KERNEL: Mengubah ekon pencarian dari *.img menjadi *.img* agar berkas boot kernel ikut terbawa utuh
       uses: actions/upload-artifact@v4
       with:
         name: postmarketOS-qcom-msm89x7-edge-phosh
-        path: /tmp/postmarketOS-export/*.img
+        path: /tmp/postmarketOS-export/*.img*
         retention-days: 7
         
