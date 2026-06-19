@@ -10,15 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@v4
 
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y git python3 openssl openssh-client
+        sudo apt-get install -y git python3 openssl
     - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
       # Modul resmi ini menyuntikkan bendera registrasi langsung ke kernel server GitHub Actions
-      uses: docker/setup-qemu-action@v4
+      uses: docker/setup-qemu-action@v3
       with:
         platforms: arm64
         fix-binary: true
@@ -30,20 +30,19 @@ jobs:
         
         # Mendaftarkan folder bin lokal dan membuat symlink yang sah dari root workspace
         mkdir -p ~/.local/bin
-        ln -sf "$GITHUB_WORKSPACE/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
+        ln -s "$GITHUB_WORKSPACE/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
         echo "$HOME/.local/bin" >> $GITHUB_PATH
     - name: Verify pmbootstrap Installation
       run: |
         # Kini bisa dipanggil langsung sebagai perintah global di lingkungan Linux Runner
         pmbootstrap --version
-    - name: Generate pmbootstrap Configuration File
+    - name: Generate pmbootstrap v3 Configuration File
       run: |
         # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
-        yes "" | pmbootstrap --as-root init --aim lomiri --device qcom-msm89x7 --no-firewall --ui lomiri || true
-        # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap.cfg secara mandiri
+        yes "" | pmbootstrap --as-root init || true
+        # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
         # REVISI UI: Mengubah target antarmuka menjadi lomiri
-        mkdir -p ~/.config
-        cat <<EOF > ~/.config/pmbootstrap.cfg
+        cat <<EOF > ~/.config/pmbootstrap_v3.cfg
         [pmbootstrap]
         version = 3
         aports = /home/runner/.local/var/pmbootstrap/cache_git/pmaports
@@ -78,15 +77,13 @@ jobs:
         pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
     - name: Export Deployment Images
       run: |
-        # Membuat folder tujuan secara eksplisit sebelum melakukan ekspor guna menghindari kendala path kosong
-        mkdir -p /tmp/postmarketOS-export
         # Mengeksekusi perintah murni v3 tanpa parameter flag --output yang dilarang hulu
-        pmbootstrap --as-root export /tmp/postmarketOS-export
+        pmbootstrap --as-root export
     - name: Upload Artifacts (Logika Curtana)
       # Memastikan berkas kernel boot berekstensi panjang (*.img*) dan citra sistem tersapu bersih masuk ke dalam zip
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v4
       with:
         name: postmarketOS-qcom-msm89x7-edge-lomiri
-        path: /tmp/postmarketOS-export/
+        path: /tmp/postmarketOS-export/*.img*
         retention-days: 7
         
