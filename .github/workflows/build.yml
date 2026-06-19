@@ -10,15 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y git python3 openssl
+        sudo apt-get install -y git python3 openssl openssh-client
     - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
       # Modul resmi ini menyuntikkan bendera registrasi langsung ke kernel server GitHub Actions
-      uses: docker/setup-qemu-action@v3
+      uses: docker/setup-qemu-action@v4
       with:
         platforms: arm64
         fix-binary: true
@@ -30,19 +30,20 @@ jobs:
         
         # Mendaftarkan folder bin lokal dan membuat symlink yang sah dari root workspace
         mkdir -p ~/.local/bin
-        ln -s "$GITHUB_WORKSPACE/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
+        ln -sf "$GITHUB_WORKSPACE/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
         echo "$HOME/.local/bin" >> $GITHUB_PATH
     - name: Verify pmbootstrap Installation
       run: |
         # Kini bisa dipanggil langsung sebagai perintah global di lingkungan Linux Runner
         pmbootstrap --version
-    - name: Generate pmbootstrap v3 Configuration File
+    - name: Generate pmbootstrap Configuration File
       run: |
         # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
-        yes "" | pmbootstrap --as-root init || true
-        # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
-        # REVISI UI: Mengubah target antarmuka menjadi plasma-mobile
-        cat <<EOF > ~/.config/pmbootstrap_v3.cfg
+        yes "" | pmbootstrap --as-root init --aim lomiri --device qcom-msm89x7 --no-firewall --ui lomiri || true
+        # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap.cfg secara mandiri
+        # REVISI UI: Mengubah target antarmuka menjadi lomiri
+        mkdir -p ~/.config
+        cat <<EOF > ~/.config/pmbootstrap.cfg
         [pmbootstrap]
         version = 3
         aports = /home/runner/.local/var/pmbootstrap/cache_git/pmaports
@@ -51,7 +52,7 @@ jobs:
         ccache_size = 5G
         channel = edge
         device = qcom-msm89x7
-        ui = plasma-mobile
+        ui = lomiri
         user = user
         lang = en_US.UTF-8
         timezone = UTC
@@ -61,9 +62,9 @@ jobs:
         mirrors.alpine = http://alpinelinux.org
         mirrors.pmaports = http://postmarketos.org
         EOF
-        # REVISI UI: Menyelaraskan konfigurasi sub-sistem internal ke unit plasma-mobile dengan flag global '--as-root'
+        # REVISI UI: Menyelaraskan konfigurasi sub-sistem internal ke unit lomiri dengan flag global '--as-root'
         pmbootstrap --as-root config device qcom-msm89x7
-        pmbootstrap --as-root config ui plasma-mobile
+        pmbootstrap --as-root config ui lomiri
     - name: Zap and Pull Mainline Packages
       run: |
         # Menginisialisasi folder kerja secara otomatis dan sah dengan flag '--as-root' dan detail log aktif
@@ -73,16 +74,19 @@ jobs:
         pmbootstrap --as-root --details-to-stdout pull
     - name: Build Rootfs Image
       run: |
-        # Memulai perakitan citra sistem operasi KDE Plasma Mobile dengan PIN/Password komunitas '147147'
+        # Memulai perakitan citra sistem operasi Lomiri dengan PIN/Password komunitas '147147'
         pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
     - name: Export Deployment Images
       run: |
+        # Membuat folder tujuan secara eksplisit sebelum melakukan ekspor guna menghindari kendala path kosong
+        mkdir -p /tmp/postmarketOS-export
         # Mengeksekusi perintah murni v3 tanpa parameter flag --output yang dilarang hulu
-        pmbootstrap --as-root export
+        pmbootstrap --as-root export /tmp/postmarketOS-export
     - name: Upload Artifacts (Logika Curtana)
       # Memastikan berkas kernel boot berekstensi panjang (*.img*) dan citra sistem tersapu bersih masuk ke dalam zip
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
-        name: postmarketOS-qcom-msm89x7-edge-plasma
-        path: /tmp/postmarketOS-export/*.img*
+        name: postmarketOS-qcom-msm89x7-edge-lomiri
+        path: /tmp/postmarketOS-export/
         retention-days: 7
+        
