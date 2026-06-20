@@ -15,7 +15,7 @@ jobs:
     - name: Install System Dependencies & mkosi
       run: |
         sudo apt-get update
-        # REVISI: Memasukkan 'mkosi' langsung melalui pengelola paket APT Ubuntu agar terhindar dari isu PyPI kosong
+        # Memasukkan 'mkosi' langsung melalui pengelola paket APT Ubuntu agar terhindar dari isu PyPI kosong
         sudo apt-get install -y git python3 python3-pip python3-setuptools openssl systemd-container arch-install-scripts mkosi
 
     - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
@@ -35,16 +35,17 @@ jobs:
         # Membuat direktori konfigurasi lokal mkosi khusus profil perangkat
         mkdir -p mkosi.local.d
         
-        # REVISI: Mengisi alamat repositori lengkap dengan sub-jalur distribusi edge resmi yang valid
+        # REVISI: Memaksa mkosi membaca skema repositori sebagai bagian dari distribusi 'alpine' resmi
         cat <<EOF > mkosi.local.d/msm89x7.conf
         [Build]
         Architecture=aarch64
 
         [Content]
+        Distribution=alpine
         Repositories=
             alpine-main=http://alpinelinux.org
             alpine-community=http://alpinelinux.org
-            postmarketos-master=http://postmarketos.org
+            alpine-postmarketos=http://postmarketos.org
         Packages=
             linux-postmarketos-qcom-msm89x7
             firmware-qcom-msm89x7
