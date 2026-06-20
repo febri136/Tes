@@ -29,14 +29,12 @@ jobs:
         # Mengunduh dari jalur resmi GitLab postmarketOS
         git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/duranium-build.git
 
-    - name: Sanitize Upstream Config (Bypass Distribution Validation Error)
+    - name: Sanitize All Upstream Configs Recursively (Bypass Distribution Validation Error)
       run: |
         cd duranium-build
-        # SOLUSI: Menghapus baris deklarasi repositori bawaan yang mengandung kata 'postmarketos=' 
-        # di file mkosi.conf utama agar tidak memicu galat validasi dari mkosi
-        if [ -f mkosi.conf ]; then
-          sed -i '/postmarketos=/d' mkosi.conf
-        fi
+        # SOLUSI TOTAL: Menghapus baris repositori/distribusi kustom 'postmarketos=' di SEMUA file .conf secara rekursif
+        find . -type f -name "*.conf" -exec sed -i '/postmarketos=/d' {} +
+        find . -type f -name "*.conf" -exec sed -i 's/Distribution=postmarketos/Distribution=alpine/g' {} +
 
     - name: Configure Duranium Profile for MSM89x7
       run: |
