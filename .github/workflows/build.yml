@@ -15,8 +15,8 @@ jobs:
     - name: Install System Dependencies & mkosi
       run: |
         sudo apt-get update
-        # Memasukkan 'mkosi' langsung melalui pengelola paket APT Ubuntu agar terhindar dari isu PyPI kosong
-        sudo apt-get install -y git python3 python3-pip python3-setuptools openssl systemd-container arch-install-scripts mkosi
+        # Menginstal mkosi bawaan sistem beserta dependensi containerization wajib dari hulu
+        sudo apt-get install -y git python3 python3-pip openssl systemd-container arch-install-scripts mkosi
 
     - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
       uses: docker/setup-qemu-action@v3
@@ -29,30 +29,14 @@ jobs:
         # Mengunduh dari jalur resmi GitLab postmarketOS
         git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/duranium-build.git
 
-    - name: Sanitize All Upstream Configs Recursively (Bypass Distribution Validation Error)
+    - name: Configure MSM89x7 Packages directly into Duranium Base Profile
       run: |
         cd duranium-build
-        # SOLUSI TOTAL: Menghapus baris repositori/distribusi kustom 'postmarketos=' di SEMUA file .conf secara rekursif
-        find . -type f -name "*.conf" -exec sed -i '/postmarketos=/d' {} +
-        find . -type f -name "*.conf" -exec sed -i 's/Distribution=postmarketos/Distribution=alpine/g' {} +
-
-    - name: Configure Duranium Profile for MSM89x7
-      run: |
-        cd duranium-build
-        # Membuat direktori konfigurasi lokal mkosi khusus profil perangkat
-        mkdir -p mkosi.local.d
-        
-        # Memaksa mkosi membaca skema repositori sebagai bagian dari distribusi 'alpine' resmi
-        cat <<EOF > mkosi.local.d/msm89x7.conf
-        [Build]
-        Architecture=aarch64
+        # Menyisipkan komponen kernel dan UI Plasma Mobile langsung ke profil base image bawaan hulu
+        # Cara ini tidak akan mengganggu logika otomatis skrip mkosi-configure.py bawaan postmarketOS
+        cat <<EOF >> mkosi.images/base/mkosi.conf
 
         [Content]
-        Distribution=alpine
-        Repositories=
-            alpine-main=http://alpinelinux.org
-            alpine-community=http://alpinelinux.org
-            alpine-postmarketos=http://postmarketos.org
         Packages=
             linux-postmarketos-qcom-msm89x7
             firmware-qcom-msm89x7
@@ -60,18 +44,16 @@ jobs:
             postmarketos-ui-plasma-mobile
         EOF
 
-    - name: Inject Configuration via Duranium Confext Architecture
+    - name: Inject User Credentials via Official Architecture
       run: |
         cd duranium-build
         # Menghasilkan password hash '147147' menggunakan openssl
         PASS_HASH=$(openssl passwd -6 "147147")
         
-        # Karena duranium memisahkan /etc ke dalam sub-image duranium-base-config, 
-        # Kita harus menyuntikkan postinst ke skrip finalisasi pembentukan konfigurasi dasar (confext)
+        # Menyisipkan instruksi pembuatan user ke dalam skrip post-install resmi base image
         mkdir -p mkosi.images/base/
-        cat <<EOF > mkosi.images/base/mkosi.postinst
+        cat <<EOF >> mkosi.images/base/mkosi.postinst
         #!/bin/sh
-        # Menambahkan konfigurasi user di lingkungan internal base image confext
         echo "user:x:10000:" >> \$BUILDROOT/etc/group
         echo "wheel:x:10:" >> \$BUILDROOT/etc/group
         echo "audio:x:18:" >> \$BUILDROOT/etc/group
@@ -86,10 +68,10 @@ jobs:
         
         chmod +x mkosi.images/base/mkosi.postinst
 
-    - name: Execute Duranium Build Engine via mkosi
+    - name: Execute Official Duranium Build Engine
       run: |
         cd duranium-build
-        # Memulai perakitan citra sistem operasi menggunakan mkosi sistem bawaan APT
+        # Menjalankan mesin pembangun mkosi murni tanpa merusak parameter global hulu
         sudo mkosi build
 
     - name: Prepare Workspace Artifacts
