@@ -68,11 +68,11 @@ jobs:
         
         chmod +x mkosi.images/base/mkosi.postinst
 
-    - name: Execute Official Duranium Build Engine
+    - name: Execute Official Duranium Wrapper Script
       run: |
         cd duranium-build
-        # Menjalankan mesin pembangun mkosi murni tanpa merusak parameter global hulu
-        sudo mkosi build
+        # REVISI PATUH PANDUAN: Memanggil skrip build-image.py bawaan untuk merakit citra perangkat kustom Anda
+        sudo ./build-image.py device-qcom-msm89x7 ui-plasma-mobile --release=edge
 
     - name: Prepare Workspace Artifacts
       run: |
