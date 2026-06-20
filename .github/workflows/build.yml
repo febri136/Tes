@@ -72,18 +72,9 @@ jobs:
       run: |
         cd duranium-build
         
-        # REVISI ADAPTIF: Memeriksa nama berkas asli secara otomatis (dengan atau tanpa .py)
-        if [ -f "build-image.py" ]; then
-          SCRIPT_NAME="build-image.py"
-        else
-          SCRIPT_NAME="build-image"
-        fi
-        
-        # Memberikan izin eksekusi berkas
-        chmod +x "$SCRIPT_NAME"
-        
-        # REVISI FINAL: Menambahkan parameter --profile=compressed untuk kompresi otomatis hasil rakitan citra sistem
-        sudo python3 "$SCRIPT_NAME" device-qcom-msm89x7 ui-plasma-mobile --release=edge --profile=compressed
+        # REVISI FINAL: Membuka izin akses dan menunjuk langsung ke jalur berkas skrip hulu di subdirektori scripts/
+        chmod +x scripts/build-image.py
+        sudo python3 scripts/build-image.py device-qcom-msm89x7 ui-plasma-mobile --release=edge --profile=compressed
 
     - name: Prepare Workspace Artifacts
       run: |
