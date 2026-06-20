@@ -15,11 +15,8 @@ jobs:
     - name: Install System Dependencies & mkosi
       run: |
         sudo apt-get update
-        sudo apt-get install -y git python3 python3-pip python3-setuptools openssl systemd-container arch-install-scripts pipx
-        
-        # SOLUSI STABIL: Menggunakan pipx untuk memasang mkosi secara aman di GitHub Actions
-        pipx install mkosi
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        # REVISI: Memasukkan 'mkosi' langsung melalui pengelola paket APT Ubuntu agar terhindar dari isu PyPI kosong
+        sudo apt-get install -y git python3 python3-pip python3-setuptools openssl systemd-container arch-install-scripts mkosi
 
     - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
       uses: docker/setup-qemu-action@v3
@@ -29,7 +26,7 @@ jobs:
 
     - name: Clone Official Duranium Build Repository
       run: |
-        # REVISI: Mengunduh dari jalur resmi GitLab postmarketOS
+        # Mengunduh dari jalur resmi GitLab postmarketOS
         git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/duranium-build.git
 
     - name: Configure Duranium Profile for MSM89x7
@@ -38,7 +35,7 @@ jobs:
         # Membuat direktori konfigurasi lokal mkosi khusus profil perangkat
         mkdir -p mkosi.local.d
         
-        # REVISI: Mengisi alamat repositori lengkap dengan sub-jalur distribusi edge resmi
+        # REVISI: Mengisi alamat repositori lengkap dengan sub-jalur distribusi edge resmi yang valid
         cat <<EOF > mkosi.local.d/msm89x7.conf
         [Build]
         Architecture=aarch64
@@ -84,8 +81,8 @@ jobs:
     - name: Execute Duranium Build Engine via mkosi
       run: |
         cd duranium-build
-        # Memulai perakitan citra sistem operasi menggunakan sudo -E agar membaca biner mkosi milik pipx
-        sudo -E env "PATH=$PATH" mkosi build
+        # Memulai perakitan citra sistem operasi menggunakan mkosi sistem bawaan APT
+        sudo mkosi build
 
     - name: Prepare Workspace Artifacts
       run: |
