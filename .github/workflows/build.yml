@@ -1,4 +1,4 @@
-name: Build postmarketOS msm89x7 Duranium Nightly
+name: Build postmarketOS msm89x7 Nightly
 
 on:
   workflow_dispatch: # Memicu build secara manual lewat tab Actions
@@ -9,83 +9,88 @@ jobs:
   build-image:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Install System Dependencies & mkosi
-      run: |
-        sudo apt-get update
-        # Menginstal mkosi bawaan sistem beserta dependensi containerization wajib dari hulu
-        sudo apt-get install -y git python3 python3-pip openssl systemd-container arch-install-scripts mkosi
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git python3 openssl
 
-    - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
-      uses: docker/setup-qemu-action@v3
-      with:
-        platforms: arm64
-        fix-binary: true
+      - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
+        # Modul resmi ini menyuntikkan bendera registrasi langsung ke kernel server GitHub Actions
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+          fix-binary: true
 
-    - name: Clone Official Duranium Build Repository
-      run: |
-        # Mengunduh dari jalur resmi GitLab postmarketOS
-        git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/duranium-build.git
+      - name: Install pmbootstrap from Official Git
+        run: |
+          # Mengunduh langsung repositori pmbootstrap ke root pangkalan kerja
+          git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
+          
+          # Mendaftarkan folder bin lokal dan membuat symlink yang sah dari root workspace
+          mkdir -p ~/.local/bin
+          ln -s "$GITHUB_WORKSPACE/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-    - name: Configure MSM89x7 Packages directly into Duranium Base Profile
-      run: |
-        cd duranium-build
-        # Menyisipkan komponen kernel dan UI Plasma Mobile langsung ke profil base image bawaan hulu
-        # Cara ini tidak akan mengganggu logika otomatis skrip mkosi-configure.py bawaan postmarketOS
-        cat <<EOF >> mkosi.images/base/mkosi.conf
+      - name: Verify pmbootstrap Installation
+        run: |
+          # Kini bisa dipanggil langsung sebagai perintah global di lingkungan Linux Runner
+          pmbootstrap --version
 
-        [Content]
-        Packages=
-            linux-postmarketos-qcom-msm89x7
-            firmware-qcom-msm89x7
-            lk2nd
-            postmarketos-ui-plasma-mobile
-        EOF
+      - name: Generate pmbootstrap v3 Configuration File
+        run: |
+          # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
+          yes "" | pmbootstrap --as-root init || true
+          # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
+          # REVISI UI: Mengubah target antarmuka menjadi gnome-mobile
+          cat <<EOF > ~/.config/pmbootstrap_v3.cfg
+          [pmbootstrap]
+          version = 3
+          aports = /home/runner/.local/var/pmbootstrap/cache_git/pmaports
+          work = /home/runner/.local/var/pmbootstrap
+          jobs = 4
+          ccache_size = 5G
+          channel = edge
+          device = qcom-msm89x7
+          ui = gnome-mobile
+          user = user
+          lang = en_US.UTF-8
+          timezone = UTC
+          hostname = qcom-msm89x7
+          is_default_channel = False
+          [mirrors]
+          mirrors.alpine = http://alpinelinux.org
+          mirrors.pmaports = http://postmarketos.org
+          EOF
+          # REVISI UI: Menyelaraskan konfigurasi sub-sistem internal ke unit gnome-mobile dengan flag global '--as-root'
+          pmbootstrap --as-root config device qcom-msm89x7
+          pmbootstrap --as-root config ui gnome-mobile
 
-    - name: Inject User Credentials via Official Architecture
-      run: |
-        cd duranium-build
-        # Menghasilkan password hash '147147' menggunakan openssl
-        PASS_HASH=$(openssl passwd -6 "147147")
-        
-        # Menyisipkan instruksi pembuatan user ke dalam skrip post-install resmi base image
-        mkdir -p mkosi.images/base/
-        cat <<EOF >> mkosi.images/base/mkosi.postinst
-        #!/bin/sh
-        echo "user:x:10000:" >> \$BUILDROOT/etc/group
-        echo "wheel:x:10:" >> \$BUILDROOT/etc/group
-        echo "audio:x:18:" >> \$BUILDROOT/etc/group
-        echo "video:x:27:" >> \$BUILDROOT/etc/group
-        
-        echo "user:x:10000:10000:postmarketOS User:/home/user:/bin/sh" >> \$BUILDROOT/etc/passwd
-        echo "user:\${PASS_HASH}:19500:0:99999:7:::" >> \$BUILDROOT/etc/shadow
-        
-        mkdir -p \$BUILDROOT/home/user
-        chown -R 10000:10000 \$BUILDROOT/home/user
-        EOF
-        
-        chmod +x mkosi.images/base/mkosi.postinst
+      - name: Zap and Pull Mainline Packages
+        run: |
+          # Menginisialisasi folder kerja secara otomatis dan sah dengan flag '--as-root' dan detail log aktif
+          pmbootstrap --as-root --details-to-stdout zap
+          
+          # Memperbarui pmaports menggunakan eksekusi langsung pmbootstrap global
+          pmbootstrap --as-root --details-to-stdout pull
 
-    - name: Execute Official Duranium Wrapper Script
-      run: |
-        cd duranium-build
-        
-        # REVISI FINAL: Membuka izin akses dan menunjuk langsung ke jalur berkas skrip hulu di subdirektori scripts/
-        chmod +x scripts/build-image.py
-        sudo python3 scripts/build-image.py device-qcom-msm89x7 ui-plasma-mobile --release=edge --profile=compressed
+      - name: Build Rootfs Image
+        run: |
+          # Memulai perakitan citra sistem operasi GNOME Mobile dengan PIN/Password komunitas '147147'
+          pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
 
-    - name: Prepare Workspace Artifacts
-      run: |
-        # Mengamankan seluruh berkas gambar keluaran dari direktori internal mkosi output
-        mkdir -p $GITHUB_WORKSPACE/duranium-output
-        cp -r duranium-build/mkosi.output/* $GITHUB_WORKSPACE/duranium-output/ || true
+      - name: Export Deployment Images
+        run: |
+          # Mengeksekusi perintah murni v3 tanpa parameter flag --output yang dilarang hulu
+          pmbootstrap --as-root export
 
-    - name: Upload Duranium Immutable Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: postmarketOS-duranium-qcom-msm89x7-plasma-mobile
-        path: ${{ github.workspace }}/duranium-output/*
-        retention-days: 7
-        
+      - name: Upload Artifacts (Logika Curtana)
+        # Memastikan berkas kernel boot berekstensi panjang (*.img*) dan citra sistem tersapu bersih masuk ke dalam zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: postmarketOS-qcom-msm89x7-edge-gnome
+          path: /tmp/postmarketOS-export/*.img*
+          retention-days: 7
+          
