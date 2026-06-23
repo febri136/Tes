@@ -15,7 +15,7 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git python3 openssl
+          sudo apt-get install -y git python3 openssl p7zip-full
 
       - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
         # Modul resmi ini menyuntikkan bendera registrasi langsung ke kernel server GitHub Actions
@@ -86,11 +86,17 @@ jobs:
           # Mengeksekusi perintah murni v3 tanpa parameter flag --output yang dilarang hulu
           pmbootstrap --as-root export
 
+      - name: Compress Images to 7z
+        run: |
+          # Masuk ke direktori hasil ekspor dan kompres semua file .img menjadi format .7z dengan kompresi ultra
+          cd /tmp/postmarketOS-export/
+          7z a -mx=9 /tmp/postmarketOS-qcom-msm89x7-gnome.7z *.img*
+
       - name: Upload Artifacts (Logika Curtana)
-        # Memastikan berkas kernel boot berekstensi panjang (*.img*) dan citra sistem tersapu bersih masuk ke dalam zip
+        # Mengunggah paket arsip .7z yang jauh lebih kecil ke GitHub Actions
         uses: actions/upload-artifact@v4
         with:
-          name: postmarketOS-qcom-msm89x7-edge-gnome
-          path: /tmp/postmarketOS-export/*.img*
+          name: postmarketOS-qcom-msm89x7-edge-gnome-7z
+          path: /tmp/postmarketOS-qcom-msm89x7-gnome.7z
           retention-days: 7
           
