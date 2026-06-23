@@ -17,12 +17,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git python3 openssl p7zip-full
 
-      - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
-        # Modul resmi ini menyuntikkan bendera registrasi langsung ke kernel server GitHub Actions
+      - name: Set up QEMU (Solusi Bypass Galat Exit Code 125)
+        # Menghapus 'fix-binary: true' karena sudah otomatis aktif di v3 untuk membersihkan warning
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
-          fix-binary: true
 
       - name: Install pmbootstrap from Official Git
         run: |
@@ -88,9 +87,8 @@ jobs:
 
       - name: Compress Images to 7z
         run: |
-          # Masuk ke direktori hasil ekspor dan kompres semua file .img menjadi format .7z dengan kompresi ultra
-          cd /tmp/postmarketOS-export/
-          7z a -mx=9 /tmp/postmarketOS-qcom-msm89x7-gnome.7z *.img*
+          # Memperbaiki fungsi direktori menggunakan operator '&&' agar 7z membaca file .img dengan tepat
+          cd /tmp/postmarketOS-export && 7z a -mx=9 /tmp/postmarketOS-qcom-msm89x7-gnome.7z ./*.img*
 
       - name: Upload Artifacts (Logika Curtana)
         # Mengunggah paket arsip .7z yang jauh lebih kecil ke GitHub Actions
