@@ -87,14 +87,14 @@ jobs:
 
       - name: Compress Images to 7z
         run: |
-          # Menambahkan -sln agar 7z memproses file asli di balik tautan simbolik pmbootstrap
-          cd /tmp/postmarketOS-export && 7z a -mx=9 -sln /tmp/postmarketOS-qcom-msm89x7-gnome.7z ./*.img*
+          # Menggunakan tar dengan flag -h (follow symlinks) untuk menyatukan file asli, lalu dikompresi ke 7z melalui standard input (-si)
+          cd /tmp/postmarketOS-export && tar -hcf - ./*.img* | 7z a -si -mx=9 /tmp/postmarketOS-qcom-msm89x7-gnome.tar.7z
 
       - name: Upload Artifacts (Logika Curtana)
-        # Mengunggah paket arsip .7z yang jauh lebih kecil ke GitHub Actions
+        # Mengunggah paket arsip .tar.7z yang sudah berhasil dikompresi tanpa merusak symlink
         uses: actions/upload-artifact@v4
         with:
           name: postmarketOS-qcom-msm89x7-edge-gnome-7z
-          path: /tmp/postmarketOS-qcom-msm89x7-gnome.7z
+          path: /tmp/postmarketOS-qcom-msm89x7-gnome.tar.7z
           retention-days: 7
           
