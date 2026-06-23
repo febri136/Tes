@@ -87,8 +87,8 @@ jobs:
 
       - name: Compress Images to 7z
         run: |
-          # Memperbaiki fungsi direktori menggunakan operator '&&' agar 7z membaca file .img dengan tepat
-          cd /tmp/postmarketOS-export && 7z a -mx=9 /tmp/postmarketOS-qcom-msm89x7-gnome.7z ./*.img*
+          # Menambahkan -sln agar 7z memproses file asli di balik tautan simbolik pmbootstrap
+          cd /tmp/postmarketOS-export && 7z a -mx=9 -sln /tmp/postmarketOS-qcom-msm89x7-gnome.7z ./*.img*
 
       - name: Upload Artifacts (Logika Curtana)
         # Mengunggah paket arsip .7z yang jauh lebih kecil ke GitHub Actions
