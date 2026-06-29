@@ -1,88 +1,96 @@
 name: Build postmarketOS msm89x7 Nightly
 
-on:  
-workflow\_dispatch:  
-schedule:  
-\- cron: '0 2 \* \* 5'
+on:
+  workflow_dispatch: # Memicu build secara manual lewat tab Actions
+  schedule:
+    - cron: '0 2 * * 5' # Otomatis build setiap hari Jumat jam 02:00 UTC
 
-jobs:  
-build-image:  
-runs-on: ubuntu-latest  
-steps:  
-\- name: Checkout Repository  
-uses: actions/checkout@v4
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
-\- name: Install System Dependencies  
-run: |  
-sudo apt-get update  
-sudo apt-get install -y git python3 openssl zip
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git python3 openssl zip
+    - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
+      # Modul resmi ini menyuntikkan bendera registrasi langsung ke kernel server GitHub Actions
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: arm64
+        fix-binary: true
 
-\- name: Set up QEMU with Fix Binary  
-uses: docker/setup-qemu-action@v3  
-with:  
-platforms: arm64  
-fix-binary: true
-
-\- name: Install pmbootstrap from Official Git  
-run: |  
-git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git  
-mkdir -p ~/.local/bin  
-ln -s "$GITHUB\_WORKSPACE/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap  
-echo "HOME/.local/bin" >> GITHUB\_PATH
-
-\- name: Verify pmbootstrap Installation  
-run: |  
-pmbootstrap --version
-
-\- name: Generate pmbootstrap v3 Configuration File  
-run: |  
-yes "" | pmbootstrap --as-root init || true  
-cat < ~/.config/pmbootstrap\_v3.cfg  
-\[pmbootstrap\]  
-version = 3  
-aports = /home/runner/.local/var/pmbootstrap/cache\_git/pmaports  
-work = /home/runner/.local/var/pmbootstrap  
-jobs = 4  
-ccache\_size = 5G  
-channel = edge  
-device = qcom-msm89x7  
-ui = plasma-mobile  
-user = user  
-lang = en\_US.UTF-8  
-timezone = UTC  
-hostname = qcom-msm89x7  
-is\_default\_channel = False  
-\[mirrors\]  
-mirrors.alpine = http://alpinelinux.org  
-mirrors.pmaports = http://postmarketos.org  
-EOF  
-pmbootstrap --as-root config device qcom-msm89x7  
-pmbootstrap --as-root config ui plasma-mobile
-
-\- name: Zap and Pull Mainline Packages  
-run: |  
-pmbootstrap --as-root --details-to-stdout zap  
-pmbootstrap --as-root --details-to-stdout pull
-
-\- name: Build Rootfs Image  
-run: |  
-pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
-
-\- name: Export Deployment Images  
-run: |  
-\# Membuat folder tujuan ekspor terlebih dahulu untuk mencegah error  
-sudo mkdir -p /tmp/postmarketOS-export  
-pmbootstrap --as-root export /tmp/postmarketOS-export
-
-\- name: Package Images into ZIP  
-run: |  
-\# Membungkus semua file hasil ekspor ke dalam satu berkas berkstensi .zip  
-cd /tmp/postmarketOS-export  
-zip -r $GITHUB\_WORKSPACE/postmarketOS-msm89x7.zip ./\*
-
-\- name: Upload Artifacts  
-uses: actions/upload-artifact@v4  
-with:  
-name: postmarketOS-qcom-msm89x7-edge-plasma  
-path: ${{ github.workspace }}/postmarketOS-msm89x7.zip  
-retention-days: 7
+    - name: Install pmbootstrap from Official Git
+      run: |
+        # Mengunduh langsung repositori pmbootstrap ke root pangkalan kerja
+        git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
+        
+        # Mendaftarkan folder bin lokal dan membuat symlink yang sah dari root workspace
+        mkdir -p ~/.local/bin
+        ln -s "$GITHUB_WORKSPACE/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+    - name: Verify pmbootstrap Installation
+      run: |
+        # Kini bisa dipanggil langsung sebagai perintah global di lingkungan Linux Runner
+        pmbootstrap --version
+    - name: Generate pmbootstrap v3 Configuration File
+      run: |
+        # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
+        yes "" | pmbootstrap --as-root init || true
+        # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
+        # REVISI UI: Mengubah target antarmuka menjadi plasma-mobile
+        cat <<EOF > ~/.config/pmbootstrap_v3.cfg
+        [pmbootstrap]
+        version = 3
+        aports = /home/runner/.local/var/pmbootstrap/cache_git/pmaports
+        work = /home/runner/.local/var/pmbootstrap
+        jobs = 4
+        ccache_size = 5G
+        channel = edge
+        device = qcom-msm89x7
+        ui = plasma-mobile
+        user = user
+        lang = en_US.UTF-8
+        timezone = UTC
+        hostname = qcom-msm89x7
+        is_default_channel = False
+        [mirrors]
+        mirrors.alpine = http://alpinelinux.org
+        mirrors.pmaports = http://postmarketos.org
+        EOF
+        # REVISI UI: Menyelaraskan konfigurasi sub-sistem internal ke unit plasma-mobile dengan flag global '--as-root'
+        pmbootstrap --as-root config device qcom-msm89x7
+        pmbootstrap --as-root config ui plasma-mobile
+    - name: Zap and Pull Mainline Packages
+      run: |
+        # Menginisialisasi folder kerja secara otomatis dan sah dengan flag '--as-root' dan detail log aktif
+        pmbootstrap --as-root --details-to-stdout zap
+        
+        # Memperbarui pmaports menggunakan eksekusi langsung pmbootstrap global
+        pmbootstrap --as-root --details-to-stdout pull
+    - name: Build Rootfs Image
+      run: |
+        # Memulai perakitan citra sistem operasi KDE Plasma Mobile dengan PIN/Password komunitas '147147'
+        pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
+    - name: Export Deployment Images
+      run: |
+        # Membuat folder tujuan ekspor terlebih dahulu untuk mencegah galat pmbootstrap v3
+        sudo mkdir -p /tmp/postmarketOS-export
+        # Mengeksekusi perintah murni v3 dengan menyertakan argumen direktori tujuan ekspor yang wajib diisi hulu
+        pmbootstrap --as-root export /tmp/postmarketOS-export
+    - name: Package Images into ZIP
+      run: |
+        # Mengompresi seluruh berkas ekspor (*.img*) menjadi berkas berkstensi .zip tunggal di pangkalan kerja
+        cd /tmp/postmarketOS-export
+        zip -r $GITHUB_WORKSPACE/postmarketOS-msm89x7.zip ./*
+    - name: Upload Artifacts (Logika Curtana)
+      # Memastikan berkas zip berisi citra sistem tersapu bersih masuk ke dalam artefak GitHub Actions
+      uses: actions/upload-artifact@v4
+      with:
+        name: postmarketOS-qcom-msm89x7-edge-plasma
+        path: ${{ github.workspace }}/postmarketOS-msm89x7.zip
+        retention-days: 7
+        
