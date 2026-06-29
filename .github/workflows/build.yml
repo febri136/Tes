@@ -64,11 +64,8 @@ jobs:
         # REVISI UI: Menyelaraskan konfigurasi sub-sistem internal ke unit plasma-mobile dengan flag global '--as-root'
         pmbootstrap --as-root config device qcom-msm89x7
         pmbootstrap --as-root config ui plasma-mobile
-    - name: Zap and Pull Mainline Packages
+    - name: Pull Mainline Packages
       run: |
-        # Menginisialisasi folder kerja secara otomatis dan sah dengan flag '--as-root' dan detail log aktif
-        pmbootstrap --as-root --details-to-stdout zap
-        
         # Memperbarui pmaports menggunakan eksekusi langsung pmbootstrap global
         pmbootstrap --as-root --details-to-stdout pull
     - name: Build Rootfs Image
