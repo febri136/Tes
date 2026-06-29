@@ -1,4 +1,4 @@
-name: Build postmarketOS msm89x7 Nightly
+name: Build postmarketOS Amlogic Generic Nightly
 
 on:
   workflow_dispatch: # Memicu build secara manual lewat tab Actions
@@ -38,57 +38,64 @@ jobs:
         pmbootstrap --version
     - name: Generate pmbootstrap v3 Configuration File
       run: |
+        # Membuat folder kerja di dalam workspace GitHub Actions untuk menjamin hak akses penuh chroot
+        mkdir -p $GITHUB_WORKSPACE/pmos_work
+        mkdir -p ~/.config
+
         # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
         yes "" | pmbootstrap --as-root init || true
         # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
-        # REVISI UI: Mengubah target antarmuka menjadi plasma-mobile
+        # REVISI PERANGKAT: Mengubah target arsitektur ke profil generik TV Box amlogic
+        # REVISI UI: Menggunakan xfce4 (rekomendasi TV Box) dan menambah paket ekstra driver grafis gallium
         cat <<EOF > ~/.config/pmbootstrap_v3.cfg
         [pmbootstrap]
         version = 3
-        aports = /home/runner/.local/var/pmbootstrap/cache_git/pmaports
-        work = /home/runner/.local/var/pmbootstrap
+        aports = $GITHUB_WORKSPACE/pmos_work/cache_git/pmaports
+        work = $GITHUB_WORKSPACE/pmos_work
         jobs = 4
         ccache_size = 5G
         channel = edge
-        device = qcom-msm89x7
-        ui = plasma-mobile
+        device = amlogic-aarch64-tvbox
+        ui = xfce4
         user = user
         lang = en_US.UTF-8
         timezone = UTC
-        hostname = qcom-msm89x7
+        hostname = amlogic-s905x4
         is_default_channel = False
+        extra_packages = mesa-dri-gallium,nano,htop
         [mirrors]
         mirrors.alpine = http://alpinelinux.org
         mirrors.pmaports = http://postmarketos.org
         EOF
-        # REVISI UI: Menyelaraskan konfigurasi sub-sistem internal ke unit plasma-mobile dengan flag global '--as-root'
-        pmbootstrap --as-root config device qcom-msm89x7
-        pmbootstrap --as-root config ui plasma-mobile
+        # REVISI UI: Menyelaraskan konfigurasi sub-sistem internal ke unit amlogic dengan flag global '--as-root'
+        pmbootstrap --as-root config device amlogic-aarch64-tvbox
+        pmbootstrap --as-root config ui xfce4
     - name: Pull Mainline Packages
       run: |
         # Memperbarui pmaports menggunakan eksekusi langsung pmbootstrap global
         pmbootstrap --as-root --details-to-stdout pull
     - name: Build Rootfs Image
       run: |
-        # Memulai perakitan citra sistem operasi KDE Plasma Mobile dengan PIN/Password komunitas '147147'
-        pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
+        # Memulai perakitan citra sistem operasi dengan flag '--img' untuk menghasilkan berkas mentah Rufus dan PIN '147147'
+        pmbootstrap --as-root --details-to-stdout install --img --no-fde --password 147147
     - name: Export Deployment Images
       run: |
         # Membuat folder tujuan ekspor terlebih dahulu untuk mencegah galat pmbootstrap v3
         sudo mkdir -p /tmp/postmarketOS-export
-        # Mengeksekusi perintah murni v3 dengan menyertakan argumen direktori tujuan ekspor yang wajib diisi hulu
-        pmbootstrap --as-root export /tmp/postmarketOS-export
+        # Menyalin file hasil build .img.xz mentah langsung dari chroot internal pmbootstrap menuju ruang ekspor
+        sudo cp $GITHUB_WORKSPACE/pmos_work/chroot_native/home/pmos/rootfs/amlogic-aarch64-tvbox.img.xz /tmp/postmarketOS-export/
+        # Mengurai berkas kompresi agar menghasilkan format .img tunggal yang ramah dibaca aplikasi Rufus Windows
+        sudo unxz /tmp/postmarketOS-export/amlogic-aarch64-tvbox.img.xz
     - name: Package Images into ZIP
       run: |
         # Mengompresi seluruh berkas ekspor (*.img*) menjadi berkas berkstensi .zip tunggal di pangkalan kerja
         cd /tmp/postmarketOS-export
-        zip -r $GITHUB_WORKSPACE/postmarketOS-msm89x7.zip ./*
+        zip -r $GITHUB_WORKSPACE/postmarketOS-amlogic-s905x4.zip ./*
     - name: Upload Artifacts (Logika Curtana)
       # Memastikan berkas zip berisi citra sistem tersapu bersih masuk ke dalam artefak GitHub Actions
       uses: actions/upload-artifact@v4
       with:
-        name: postmarketOS-qcom-msm89x7-edge-plasma
-        path: ${{ github.workspace }}/postmarketOS-msm89x7.zip
+        name: postmarketOS-amlogic-s905x4-edge-xfce4
+        path: ${{ github.workspace }}/postmarketOS-amlogic-s905x4.zip
         retention-days: 7
-
         
