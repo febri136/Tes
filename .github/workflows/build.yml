@@ -1,4 +1,4 @@
-name: Build postmarketOS msm89x7 Nightly
+name: Build postmarketOS msm89x7 Nightly Multi-UI (7 UIs)
 
 on:
   workflow_dispatch: # Memicu build secara manual lewat tab Actions
@@ -8,6 +8,13 @@ on:
 jobs:
   build-image:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # STRATEGI 7 UI: Memisahkan gnome-mobile dan gnome desktop standar sesuai diskusi
+        ui: [gnome-mobile, gnome, plasma-mobile, xfce4, phosh, sxmo, mate]
+      # Memastikan kegagalan pada satu UI tidak membatalkan proses build UI lainnya
+      fail-fast: false
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -16,6 +23,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git python3 openssl
+
       - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
         # Modul resmi ini menyuntikkan bendera registrasi langsung ke kernel server GitHub Actions
         uses: docker/setup-qemu-action@v3
@@ -32,16 +40,18 @@ jobs:
           mkdir -p ~/.local/bin
           ln -s "$GITHUB_WORKSPACE/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
           echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Verify pmbootstrap Installation
         run: |
           # Kini bisa dipanggil langsung sebagai perintah global di lingkungan Linux Runner
           pmbootstrap --version
+
       - name: Generate pmbootstrap v3 Configuration File
         run: |
           # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
           yes "" | pmbootstrap --as-root init || true
-          # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
-          # REVISI UI: Mengubah target antarmuka menjadi gnome-mobile
+          
+          # REVISI TOTAL MULTI-UI: Menulis konfigurasi secara dinamis mengikuti matriks UI yang berjalan
           cat <<EOF > ~/.config/pmbootstrap_v3.cfg
           [pmbootstrap]
           version = 3
@@ -51,7 +61,7 @@ jobs:
           ccache_size = 5G
           channel = edge
           device = qcom-msm89x7
-          ui = gnome-mobile
+          ui = ${{ matrix.ui }}
           user = user
           lang = en_US.UTF-8
           timezone = UTC
@@ -61,9 +71,11 @@ jobs:
           mirrors.alpine = http://alpinelinux.org
           mirrors.pmaports = http://postmarketos.org
           EOF
-          # REVISI UI: Menyelaraskan konfigurasi sub-sistem internal ke unit gnome-mobile dengan flag global '--as-root'
+          
+          # REVISI UI DINAMIS: Menyelaraskan konfigurasi sub-sistem internal ke unit matriks terkait
           pmbootstrap --as-root config device qcom-msm89x7
-          pmbootstrap --as-root config ui gnome-mobile
+          pmbootstrap --as-root config ui ${{ matrix.ui }}
+
       - name: Zap and Pull Mainline Packages
         run: |
           # Menginisialisasi folder kerja secara otomatis dan sah dengan flag '--as-root' dan detail log aktif
@@ -71,18 +83,22 @@ jobs:
           
           # Memperbarui pmaports menggunakan eksekusi langsung pmbootstrap global
           pmbootstrap --as-root --details-to-stdout pull
+
       - name: Build Rootfs Image
         run: |
-          # Memulai perakitan citra sistem operasi GNOME Mobile dengan PIN/Password komunitas '147147'
+          # Memulai perakitan citra sistem operasi berdasarkan UI matriks dengan PIN '147147'
           pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
+
       - name: Export Deployment Images
         run: |
           # Mengeksekusi perintah murni v3 tanpa parameter flag --output yang dilarang hulu
           pmbootstrap --as-root export
-      - name: Upload Artifacts (Logika Curtana)
+
+      - name: Upload Artifacts (Logika Curtana Multi-UI)
         # Memastikan berkas kernel boot berekstensi panjang (*.img*) dan citra sistem tersapu bersih masuk ke dalam zip
         uses: actions/upload-artifact@v4
         with:
-          name: postmarketOS-qcom-msm89x7-edge-gnome
+          # REVISI NAMA ARTIFACT: Nama zip otomatis berubah secara dinamis agar 7 file tidak saling menimpa
+          name: postmarketOS-qcom-msm89x7-edge-${{ matrix.ui }}
           path: /tmp/postmarketOS-export/*.img*
           retention-days: 7
