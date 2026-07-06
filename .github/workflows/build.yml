@@ -1,4 +1,4 @@
-name: Build postmarketOS Amlogic Generic Nightly
+name: Build postmarketOS msm89x7 Nightly
 
 on:
   workflow_dispatch: # Memicu build secara manual lewat tab Actions
@@ -9,93 +9,80 @@ jobs:
   build-image:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Install System Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y git python3 openssl zip
-    - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
-      # Modul resmi ini menyuntikkan bendera registrasi langsung ke kernel server GitHub Actions
-      uses: docker/setup-qemu-action@v3
-      with:
-        platforms: arm64
-        fix-binary: true
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git python3 openssl
+      - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
+        # Modul resmi ini menyuntikkan bendera registrasi langsung ke kernel server GitHub Actions
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+          fix-binary: true
 
-    - name: Install pmbootstrap from Official Git
-      run: |
-        # Mengunduh langsung repositori pmbootstrap ke root pangkalan kerja
-        git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
-        
-        # Mendaftarkan folder bin lokal dan membuat symlink yang sah dari root workspace
-        mkdir -p ~/.local/bin
-        ln -s "$GITHUB_WORKSPACE/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-    - name: Verify pmbootstrap Installation
-      run: |
-        # Kini bisa dipanggil langsung sebagai perintah global di lingkungan Linux Runner
-        pmbootstrap --version
-    - name: Generate pmbootstrap v3 Configuration File
-      run: |
-        # Membuat folder kerja di dalam workspace GitHub Actions untuk menjamin hak akses penuh chroot
-        mkdir -p $GITHUB_WORKSPACE/pmos_work
-        mkdir -p ~/.config
-
-        # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
-        yes "" | pmbootstrap --as-root init || true
-        # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
-        # REVISI PERANGKAT: Mengubah target arsitektur ke profil generik TV Box amlogic
-        # REVISI UI: Menggunakan xfce4 (rekomendasi TV Box) dan menambah paket ekstra driver grafis gallium
-        cat <<EOF > ~/.config/pmbootstrap_v3.cfg
-        [pmbootstrap]
-        version = 3
-        aports = $GITHUB_WORKSPACE/pmos_work/cache_git/pmaports
-        work = $GITHUB_WORKSPACE/pmos_work
-        jobs = 4
-        ccache_size = 5G
-        channel = edge
-        device = amlogic-aarch64-tvbox
-        ui = xfce4
-        user = user
-        lang = en_US.UTF-8
-        timezone = UTC
-        hostname = amlogic-s905x4
-        is_default_channel = False
-        extra_packages = mesa-dri-gallium,nano,htop
-        [mirrors]
-        mirrors.alpine = http://alpinelinux.org
-        mirrors.pmaports = http://postmarketos.org
-        EOF
-        # REVISI UI: Menyelaraskan konfigurasi sub-sistem internal ke unit amlogic dengan flag global '--as-root'
-        pmbootstrap --as-root config device amlogic-aarch64-tvbox
-        pmbootstrap --as-root config ui xfce4
-    - name: Pull Mainline Packages
-      run: |
-        # Memperbarui pmaports menggunakan eksekusi langsung pmbootstrap global
-        pmbootstrap --as-root --details-to-stdout pull
-    - name: Build Rootfs Image
-      run: |
-        # Memulai perakitan citra sistem operasi dengan flag '--img' untuk menghasilkan berkas mentah Rufus dan PIN '147147'
-        pmbootstrap --as-root --details-to-stdout install --img --no-fde --password 147147
-    - name: Export Deployment Images
-      run: |
-        # Membuat folder tujuan ekspor terlebih dahulu untuk mencegah galat pmbootstrap v3
-        sudo mkdir -p /tmp/postmarketOS-export
-        # Menyalin file hasil build .img.xz mentah langsung dari chroot internal pmbootstrap menuju ruang ekspor
-        sudo cp $GITHUB_WORKSPACE/pmos_work/chroot_native/home/pmos/rootfs/amlogic-aarch64-tvbox.img.xz /tmp/postmarketOS-export/
-        # Mengurai berkas kompresi agar menghasilkan format .img tunggal yang ramah dibaca aplikasi Rufus Windows
-        sudo unxz /tmp/postmarketOS-export/amlogic-aarch64-tvbox.img.xz
-    - name: Package Images into ZIP
-      run: |
-        # Mengompresi seluruh berkas ekspor (*.img*) menjadi berkas berkstensi .zip tunggal di pangkalan kerja
-        cd /tmp/postmarketOS-export
-        zip -r $GITHUB_WORKSPACE/postmarketOS-amlogic-s905x4.zip ./*
-    - name: Upload Artifacts (Logika Curtana)
-      # Memastikan berkas zip berisi citra sistem tersapu bersih masuk ke dalam artefak GitHub Actions
-      uses: actions/upload-artifact@v4
-      with:
-        name: postmarketOS-amlogic-s905x4-edge-xfce4
-        path: ${{ github.workspace }}/postmarketOS-amlogic-s905x4.zip
-        retention-days: 7
-        
+      - name: Install pmbootstrap from Official Git
+        run: |
+          # Mengunduh langsung repositori pmbootstrap ke root pangkalan kerja
+          git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
+          
+          # Mendaftarkan folder bin lokal dan membuat symlink yang sah dari root workspace
+          mkdir -p ~/.local/bin
+          ln -s "$GITHUB_WORKSPACE/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Verify pmbootstrap Installation
+        run: |
+          # Kini bisa dipanggil langsung sebagai perintah global di lingkungan Linux Runner
+          pmbootstrap --version
+      - name: Generate pmbootstrap v3 Configuration File
+        run: |
+          # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
+          yes "" | pmbootstrap --as-root init || true
+          # REVISI TOTAL (BYPASS SU PMOS): Menimpa berkas pmbootstrap_v3.cfg secara mandiri
+          # REVISI UI: Mengubah target antarmuka menjadi gnome-mobile
+          cat <<EOF > ~/.config/pmbootstrap_v3.cfg
+          [pmbootstrap]
+          version = 3
+          aports = /home/runner/.local/var/pmbootstrap/cache_git/pmaports
+          work = /home/runner/.local/var/pmbootstrap
+          jobs = 4
+          ccache_size = 5G
+          channel = edge
+          device = qcom-msm89x7
+          ui = gnome-mobile
+          user = user
+          lang = en_US.UTF-8
+          timezone = UTC
+          hostname = qcom-msm89x7
+          is_default_channel = False
+          [mirrors]
+          mirrors.alpine = http://alpinelinux.org
+          mirrors.pmaports = http://postmarketos.org
+          EOF
+          # REVISI UI: Menyelaraskan konfigurasi sub-sistem internal ke unit gnome-mobile dengan flag global '--as-root'
+          pmbootstrap --as-root config device qcom-msm89x7
+          pmbootstrap --as-root config ui gnome-mobile
+      - name: Zap and Pull Mainline Packages
+        run: |
+          # Menginisialisasi folder kerja secara otomatis dan sah dengan flag '--as-root' dan detail log aktif
+          pmbootstrap --as-root --details-to-stdout zap
+          
+          # Memperbarui pmaports menggunakan eksekusi langsung pmbootstrap global
+          pmbootstrap --as-root --details-to-stdout pull
+      - name: Build Rootfs Image
+        run: |
+          # Memulai perakitan citra sistem operasi GNOME Mobile dengan PIN/Password komunitas '147147'
+          pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
+      - name: Export Deployment Images
+        run: |
+          # Mengeksekusi perintah murni v3 tanpa parameter flag --output yang dilarang hulu
+          pmbootstrap --as-root export
+      - name: Upload Artifacts (Logika Curtana)
+        # Memastikan berkas kernel boot berekstensi panjang (*.img*) dan citra sistem tersapu bersih masuk ke dalam zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: postmarketOS-qcom-msm89x7-edge-gnome
+          path: /tmp/postmarketOS-export/*.img*
+          retention-days: 7
