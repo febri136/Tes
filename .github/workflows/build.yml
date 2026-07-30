@@ -1,4 +1,4 @@
-name: Build postmarketOS for Amlogic S905X4 (GNOME Only)
+name: Build postmarketOS for Amlogic S905X4 (Devmfc Kernel GNOME)
 
 on:
   workflow_dispatch: # Memicu build secara manual lewat tab Actions
@@ -19,7 +19,7 @@ jobs:
           sudo apt-get install -y git python3 openssl
 
       - name: Set up QEMU
-        # Modul resmi QEMU untuk mendukung proses emulasi silang paket ARM64 di server GitHub
+        # Modul resmi QEMU untuk menjamin kelancaran emulasi silang paket ARM64 di server GitHub
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
@@ -44,7 +44,7 @@ jobs:
           # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal secara sah
           yes "" | pmbootstrap --as-root init || true
           
-          # REVISI DISKUSI: Menambahkan parameter kernel = mainline agar kompatibel dengan amlogic-aarch64-tvbox
+          # INTEGRASI REVISI DISKUSI: Menargetkan amlogic-aarch64-tvbox dengan jenis kernel mainline
           cat <<EOF > ~/.config/pmbootstrap_v3.cfg
           [pmbootstrap]
           version = 3
@@ -66,7 +66,7 @@ jobs:
           mirrors.pmaports = http://postmarketos.org
           EOF
           
-          # PENYELARASAN TARGET PERANGKAT: Memaksa subsistem mengenali profil perangkat, jenis kernel, dan antarmuka gnome
+          # PENYELARASAN TARGET PERANGKAT: Memaksa subsistem mengenali profil perangkat, jenis kernel mainline, dan antarmuka gnome
           pmbootstrap --as-root config device amlogic-aarch64-tvbox
           pmbootstrap --as-root config kernel mainline
           pmbootstrap --as-root config ui gnome
@@ -79,9 +79,26 @@ jobs:
           # Memperbarui pmaports menggunakan eksekusi langsung pmbootstrap global
           pmbootstrap --as-root --details-to-stdout pull
 
+      - name: Inject Devmfc Custom Kernel Source
+        run: |
+          # JALUR KUSTOM KERNEL DISKUSI: Menuju direktori kemasan pembuatan paket kernel amlogic hulu
+          TARGET_DIR="/home/runner/.local/var/pmbootstrap/cache_git/pmaports/device/testing/linux-postmarketos-amlogic"
+          cd $TARGET_DIR
+          
+          echo "=== Menimpa Cetak Biru APKBUILD ke Repositori Git Devmfc ==="
+          # Menukar variabel URL git hulu ke alamat repositori dasar pengembang devmfc (linux-meson)
+          sed -i 's|_giturl=.*|_giturl="https://github.com"|g' APKBUILD
+          
+          # PERBAIKAN RILIS TERBARU: Menyesuaikan branch pengompilan mengikuti versi stabil v6.18 milik devmfc
+          sed -i 's|_gitbranch=.*|_gitbranch="amlogic-6.18"|g' APKBUILD
+          
+          echo "=== Memperbarui Berkas Checksum Manifest Paket ==="
+          # Melakukan generate ulang kode hash pengaman karena berkas sumber hulu telah dimanipulasi secara paksa
+          pmbootstrap --as-root checksum linux-postmarketos-amlogic
+
       - name: Build Rootfs Image
         run: |
-          # Memulai perakitan citra tanpa menggunakan opsi enkripsi hulu dan flag --arch ilegal
+          # Memulai perakitan citra dengan kernel kustom devmfc, tanpa opsi enkripsi hulu, dan tanpa flag --arch ilegal
           pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
 
       - name: Export Deployment Images
@@ -93,6 +110,6 @@ jobs:
         # Memastikan berkas citra sistem ter-upload dengan aman ke artefak GitHub
         uses: actions/upload-artifact@v4
         with:
-          name: postmarketOS-amlogic-s905x4-edge-gnome
+          name: postmarketOS-amlogic-s905x4-devmfc-gnome
           path: /tmp/postmarketOS-export/*.img*
           retention-days: 7
