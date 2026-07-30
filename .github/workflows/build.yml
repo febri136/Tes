@@ -18,12 +18,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git python3 openssl
 
-      - name: Set up QEMU with Fix Binary (Solusi Bypass Galat Exit Code 125)
-        # Modul resmi ini menyuntikkan bendera registrasi langsung ke kernel server GitHub Actions
+      - name: Set up QEMU
+        # Pembaruan modul resmi QEMU tanpa parameter eksternal usang penyebab peringatan log
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
-          fix-binary: true
 
       - name: Install pmbootstrap from Official Git
         run: |
@@ -80,8 +79,8 @@ jobs:
 
       - name: Build Rootfs Image
         run: |
-          # Memulai perakitan citra sistem operasi untuk arsitektur arm64 (aarch64) dengan PIN '147147'
-          pmbootstrap --as-root --details-to-stdout install --arch aarch64 --no-fde --password 147147
+          # REVISI UTAMA: Menghapus flag '--arch aarch64' yang ilegal di perintah install pmbootstrap v3
+          pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
 
       - name: Export Deployment Images
         run: |
