@@ -1,4 +1,4 @@
-name: Build postmarketOS msm89x7 Nightly Multi-UI (7 UIs)
+name: Build postmarketOS for Amlogic S905X4 (GNOME Only)
 
 on:
   workflow_dispatch: # Memicu build secara manual lewat tab Actions
@@ -8,12 +8,6 @@ on:
 jobs:
   build-image:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # STRATEGI 7 UI: Memisahkan gnome-mobile dan gnome desktop standar sesuai diskusi
-        ui: [gnome-mobile, gnome, plasma-mobile, xfce4, phosh, sxmo, mate]
-      # Memastikan kegagalan pada satu UI tidak membatalkan proses build UI lainnya
-      fail-fast: false
 
     steps:
       - name: Checkout Repository
@@ -51,7 +45,7 @@ jobs:
           # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
           yes "" | pmbootstrap --as-root init || true
           
-          # REVISI TOTAL MULTI-UI: Menulis konfigurasi secara dinamis mengikuti matriks UI yang berjalan
+          # KONFIGURASI AM LOGIC S905X4: Menulis konfigurasi v3 menggunakan target amlogic & aarch64-tvbox, serta mengunci UI pada gnome
           cat <<EOF > ~/.config/pmbootstrap_v3.cfg
           [pmbootstrap]
           version = 3
@@ -60,21 +54,21 @@ jobs:
           jobs = 4
           ccache_size = 5G
           channel = edge
-          device = qcom-msm89x7
-          ui = ${{ matrix.ui }}
+          device = aarch64-tvbox
+          ui = gnome
           user = user
           lang = en_US.UTF-8
           timezone = UTC
-          hostname = qcom-msm89x7
+          hostname = pmos-s905x4
           is_default_channel = False
           [mirrors]
           mirrors.alpine = http://alpinelinux.org
           mirrors.pmaports = http://postmarketos.org
           EOF
           
-          # REVISI UI DINAMIS: Menyelaraskan konfigurasi sub-sistem internal ke unit matriks terkait
-          pmbootstrap --as-root config device qcom-msm89x7
-          pmbootstrap --as-root config ui ${{ matrix.ui }}
+          # REVISI TARGET PERANGKAT: Menyelaraskan ke profil vendor amlogic untuk TV Box S905X4
+          pmbootstrap --as-root config device aarch64-tvbox
+          pmbootstrap --as-root config ui gnome
 
       - name: Zap and Pull Mainline Packages
         run: |
@@ -86,19 +80,18 @@ jobs:
 
       - name: Build Rootfs Image
         run: |
-          # Memulai perakitan citra sistem operasi berdasarkan UI matriks dengan PIN '147147'
-          pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
+          # Memulai perakitan citra sistem operasi untuk arsitektur arm64 (aarch64) dengan PIN '147147'
+          pmbootstrap --as-root --details-to-stdout install --arch aarch64 --no-fde --password 147147
 
       - name: Export Deployment Images
         run: |
           # Mengeksekusi perintah murni v3 tanpa parameter flag --output yang dilarang hulu
           pmbootstrap --as-root export
 
-      - name: Upload Artifacts (Logika Curtana Multi-UI)
-        # Memastikan berkas kernel boot berekstensi panjang (*.img*) dan citra sistem tersapu bersih masuk ke dalam zip
+      - name: Upload Artifacts
+        # Memastikan berkas citra sistem ter-upload dengan aman ke artefak GitHub
         uses: actions/upload-artifact@v4
         with:
-          # REVISI NAMA ARTIFACT: Nama zip otomatis berubah secara dinamis agar 7 file tidak saling menimpa
-          name: postmarketOS-qcom-msm89x7-edge-${{ matrix.ui }}
+          name: postmarketOS-amlogic-s905x4-edge-gnome
           path: /tmp/postmarketOS-export/*.img*
           retention-days: 7
