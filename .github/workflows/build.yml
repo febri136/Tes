@@ -19,7 +19,7 @@ jobs:
           sudo apt-get install -y git python3 openssl
 
       - name: Set up QEMU
-        # Pembaruan modul resmi QEMU tanpa parameter eksternal usang penyebab peringatan log
+        # Modul resmi QEMU untuk mendukung proses emulasi silang paket ARM64 di server GitHub
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
@@ -36,15 +36,15 @@ jobs:
 
       - name: Verify pmbootstrap Installation
         run: |
-          # Kini bisa dipanggil langsung sebagai perintah global di lingkungan Linux Runner
+          # Perintah global pmbootstrap siap digunakan
           pmbootstrap --version
 
       - name: Generate pmbootstrap v3 Configuration File
         run: |
-          # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal berstatus Version 8 bawaan hulu secara sah
+          # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal secara sah
           yes "" | pmbootstrap --as-root init || true
           
-          # KONFIGURASI AM LOGIC S905X4: Menulis konfigurasi v3 menggunakan target amlogic & aarch64-tvbox, serta mengunci UI pada gnome
+          # REVISI DISKUSI: Mengubah nama target dari 'aarch64-tvbox' ke 'amlogic-aarch64-tvbox' sesuai aturan pmaports hulu
           cat <<EOF > ~/.config/pmbootstrap_v3.cfg
           [pmbootstrap]
           version = 3
@@ -53,7 +53,7 @@ jobs:
           jobs = 4
           ccache_size = 5G
           channel = edge
-          device = aarch64-tvbox
+          device = amlogic-aarch64-tvbox
           ui = gnome
           user = user
           lang = en_US.UTF-8
@@ -65,8 +65,8 @@ jobs:
           mirrors.pmaports = http://postmarketos.org
           EOF
           
-          # REVISI TARGET PERANGKAT: Menyelaraskan ke profil vendor amlogic untuk TV Box S905X4
-          pmbootstrap --as-root config device aarch64-tvbox
+          # PENYELARASAN TARGET PERANGKAT: Menyelaraskan ulang preferensi sistem ke profil yang valid
+          pmbootstrap --as-root config device amlogic-aarch64-tvbox
           pmbootstrap --as-root config ui gnome
 
       - name: Zap and Pull Mainline Packages
@@ -79,7 +79,7 @@ jobs:
 
       - name: Build Rootfs Image
         run: |
-          # REVISI UTAMA: Menghapus flag '--arch aarch64' yang ilegal di perintah install pmbootstrap v3
+          # REVISI DISKUSI: Memulai perakitan citra tanpa flag '--arch aarch64' yang memicu crash hulu
           pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
 
       - name: Export Deployment Images
