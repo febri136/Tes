@@ -44,7 +44,7 @@ jobs:
           # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal secara sah
           yes "" | pmbootstrap --as-root init || true
           
-          # SOLUSI UTAMA LOG ERR: Mengubah kernel menjadi 'amlogic' agar lolos dari validasi ketat pmaports hulu
+          # REVISI FINAL: Mengunci kernel ke profil 's400' (Target S905X4 resmi hulu) agar lolos validasi awal
           cat <<EOF > ~/.config/pmbootstrap_v3.cfg
           [pmbootstrap]
           version = 3
@@ -54,7 +54,7 @@ jobs:
           ccache_size = 5G
           channel = edge
           device = amlogic-aarch64-tvbox
-          kernel = amlogic
+          kernel = s400
           ui = gnome
           user = user
           lang = en_US.UTF-8
@@ -66,9 +66,9 @@ jobs:
           mirrors.pmaports = http://postmarketos.org
           EOF
           
-          # PENYELARASAN TARGET PERANGKAT: Memaksa konfigurasi awal menerima profil penamaan kernel hulu yang valid
+          # PENYELARASAN TARGET PERANGKAT: Menyuntikkan profil s400 ke runtime validator lokal
           pmbootstrap --as-root config device amlogic-aarch64-tvbox
-          pmbootstrap --as-root config kernel amlogic
+          pmbootstrap --as-root config kernel s400
           pmbootstrap --as-root config ui gnome
 
       - name: Zap and Pull Mainline Packages
@@ -89,7 +89,7 @@ jobs:
           # PERBAIKAN REVISI: Mengembalikan alamat URL repositori penuh milik devmfc agar pengunduhan tidak gagal
           sed -i 's|_giturl=.*|_giturl="https://github.com"|g' APKBUILD
           
-          # PERBAIKAN RILIS TERBARU: Menyesuaikan branch pengompilan mengikuti versi stabil v6.18 milik devmfc
+          # PERBAIKAN RILIS TERBARU: Menyesuaikan branch pengompilan mengikuti versi rilis stabil v6.18 milik devmfc
           sed -i 's|_gitbranch=.*|_gitbranch="amlogic-6.18"|g' APKBUILD
           
           echo "=== Memperbarui Berkas Checksum Manifest Paket ==="
