@@ -44,7 +44,7 @@ jobs:
           # SELESAIKAN GERBANG INTERAKTIF: Mendapatkan otentikasi folder kerja orisinal secara sah
           yes "" | pmbootstrap --as-root init || true
           
-          # REVISI DISKUSI: Mengubah nama target dari 'aarch64-tvbox' ke 'amlogic-aarch64-tvbox' sesuai aturan pmaports hulu
+          # REVISI DISKUSI: Menambahkan parameter kernel = mainline agar kompatibel dengan amlogic-aarch64-tvbox
           cat <<EOF > ~/.config/pmbootstrap_v3.cfg
           [pmbootstrap]
           version = 3
@@ -54,6 +54,7 @@ jobs:
           ccache_size = 5G
           channel = edge
           device = amlogic-aarch64-tvbox
+          kernel = mainline
           ui = gnome
           user = user
           lang = en_US.UTF-8
@@ -65,8 +66,9 @@ jobs:
           mirrors.pmaports = http://postmarketos.org
           EOF
           
-          # PENYELARASAN TARGET PERANGKAT: Menyelaraskan ulang preferensi sistem ke profil yang valid
+          # PENYELARASAN TARGET PERANGKAT: Memaksa subsistem mengenali profil perangkat, jenis kernel, dan antarmuka gnome
           pmbootstrap --as-root config device amlogic-aarch64-tvbox
+          pmbootstrap --as-root config kernel mainline
           pmbootstrap --as-root config ui gnome
 
       - name: Zap and Pull Mainline Packages
@@ -79,7 +81,7 @@ jobs:
 
       - name: Build Rootfs Image
         run: |
-          # REVISI DISKUSI: Memulai perakitan citra tanpa flag '--arch aarch64' yang memicu crash hulu
+          # Memulai perakitan citra tanpa menggunakan opsi enkripsi hulu dan flag --arch ilegal
           pmbootstrap --as-root --details-to-stdout install --no-fde --password 147147
 
       - name: Export Deployment Images
